@@ -25,11 +25,20 @@
 #define PPP_PAP 0xc023
 #define PPP_CHAP 0xc223
 #define OPENED 4
+#define PHASE_DEAD 0
+#define PHASE_AUTHENTICATE 3
 typedef struct { int state; } fsm_t;
 static fsm_t lcp_fsm[16];
 static int lcp_sprotrej(int unit, char *p, int len) { return 0; }
 #define pppd_calltimeout() 
 static void lcp_close(int unit, char *reason) {}
+
+// Stub pppd globals
+static int phase[16] = {0};
+typedef struct { char *us_user; int us_userlen; char *us_passwd; int us_passwdlen; } upap_t;
+static upap_t upap[16];
+typedef struct { char *us_user; int us_userlen; char *us_passwd; int us_passwdlen; } chap_client_t;
+static chap_client_t chap_client[16];
 
 // Stub protocols array
 struct protent;
