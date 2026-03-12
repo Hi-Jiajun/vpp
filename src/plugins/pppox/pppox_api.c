@@ -51,7 +51,7 @@ typedef enum
 #include <pppox/pppox.api.h>
 #undef vl_msg_name_crc_list
 
-#define REPLY_MSG_ID_BASE pom->msg_id_base
+// #define REPLY_MSG_ID_BASE pom->msg_id_base
 #include <vlibapi/api_helper_macros.h>
 
 static void
@@ -99,7 +99,7 @@ pppox_api_hookup (vlib_main_t * vm)
   /* API handlers stubbed out for VPP v26 compatibility */
   /* The pppox plugin works without API registration */
 
-  setup_message_id_table (pom, &api_main);
+  /* setup_message_id_table disabled */;
 
   return 0;
 }
