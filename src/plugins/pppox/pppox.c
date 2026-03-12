@@ -24,9 +24,14 @@
 #define PPP_LCP 0xc021
 #define PPP_PAP 0xc023
 #define PPP_CHAP 0xc223
+#define PPP_HDRLEN 4
 #define OPENED 4
 #define PHASE_DEAD 0
 #define PHASE_AUTHENTICATE 3
+
+// GETSHORT macro
+#define GETSHORT(s, p) (s) = ((u16)((p)[0] << 8) | (p)[1]); (p) += 2
+
 typedef struct { int state; } fsm_t;
 static fsm_t lcp_fsm[16];
 static int lcp_sprotrej(int unit, char *p, int len) { return 0; }
