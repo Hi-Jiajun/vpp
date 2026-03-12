@@ -27,6 +27,7 @@ static struct protent *stub_protocols[] = { NULL };
 
 #include <pppox/pppd/pppd.h>
 #include <pppox/pppd/lcp.h>
+#include <pppox/pppd/sys-vpp.h>
 
 #include <pppox/pppox.h>
 
