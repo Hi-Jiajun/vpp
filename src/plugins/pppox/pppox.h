@@ -95,9 +95,9 @@ extern vlib_node_registration_t pppox_output_node;
 
 int consume_pppox_ctrl_pkt (u32, vlib_buffer_t *);
 
-u32 pppox_allocate_interface(u32);
+__clib_export u32 pppox_allocate_interface(u32);
 
-void pppox_free_interface(u32);
+__clib_export void pppox_free_interface(u32);
 
 void pppox_lower_up(u32);
 

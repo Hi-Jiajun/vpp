@@ -234,7 +234,7 @@ VNET_HW_INTERFACE_CLASS (pppox_hw_class,static) = {
 };
 
 u32
-pppox_allocate_interface (u32 pppoe_client_index)
+__clib_export pppox_allocate_interface (u32 pppoe_client_index)
 {
   pppox_main_t * pom = &pppox_main;
   u32 hw_if_index = ~0;
@@ -347,7 +347,7 @@ pppox_handle_allocated_address (pppox_virtual_interface_t * t, u8 is_add)
 }
 
 void
-pppox_free_interface(u32 hw_if_index)
+__clib_export pppox_free_interface(u32 hw_if_index)
 {
   pppox_main_t * pom = &pppox_main;
   vnet_main_t *vnm = pom->vnet_main;
