@@ -17,6 +17,9 @@ add_vpp_plugin(pppoeclient
     pppoeclient.c
     pppoeclient_api.c
 
+  API_FILES
+    pppoeclient.api
+
   INSTALL_HEADERS
     pppoeclient.h
     pppoeclient_error.def
