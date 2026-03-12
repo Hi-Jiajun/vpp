@@ -405,7 +405,7 @@ __clib_export pppox_free_interface(u32 hw_if_index)
   }
 }
 
-void
+__clib_export void
 pppox_lower_up(u32 sw_if_index)
 {
   pppox_main_t * pom = &pppox_main;
@@ -435,7 +435,7 @@ pppox_lower_up(u32 sw_if_index)
   return;
 }
 // TODO: handle carrier status and pppoe sessiond down (PADT is not processed now).
-void
+__clib_export void
 pppox_lower_down(u32 sw_if_index)
 {
   pppox_main_t * pom = &pppox_main;
