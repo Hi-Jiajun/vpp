@@ -11,6 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Disable strict C23 warnings for pppd legacy code
+add_compile_options(-Wno-error)
+
 add_vpp_plugin(pppox
   SOURCES
     cli.c
