@@ -11,29 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Disable strict C23 warnings for pppd legacy code
-add_compile_options(-Wno-error)
-
 add_vpp_plugin(pppox
   SOURCES
     cli.c
     node.c
     pppox.c
     pppox_api.c
-    pppd/sys-vpp.c
-    pppd/fsm.c
-    pppd/lcp.c
-    pppd/ipcp.c
-    pppd/upap.c
-    pppd/auth.c
-    pppd/chap-md5.c
-    pppd/chap-new.c
-    pppd/magic.c
-    pppd/md5.c
-    pppd/utils.c
-    pppd/options.c
-    pppd/ccp.c
-    pppd/ecp.c
 
   API_FILES
     pppox.api

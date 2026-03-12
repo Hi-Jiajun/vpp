@@ -383,7 +383,9 @@ struct protent {
 };
 
 /* Table of pointers to supported protocols */
-extern struct protent *protocols[];
+struct protent;
+extern struct protent *stub_protocols[];
+#define protocols stub_protocols
 
 /*
  * This struct contains pointers to a set of procedures for

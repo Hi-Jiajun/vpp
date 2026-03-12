@@ -12,20 +12,19 @@
 #include <vnet/dpo/interface_tx_dpo.h>
 #include <vnet/plugin/plugin.h>
 #include <vpp/app/version.h>
-// PPP protocol definitions - moved from vnet/ppp/packet.h
+
+// PPP protocol definitions
 #define PPP_PROTOCOL_IP4 0x0021
 #define PPP_PROTOCOL_IP6 0x0057
 #define PPP_PROTOCOL_IPX 0x002B
 #define PPP_PROTOCOL_VJ_COMP 0x002D
 #define PPP_PROTOCOL_VJ_UCOMP 0x002F
 
+// Stub protocols array for pppox plugin
+struct protent;
+static struct protent *stub_protocols[] = { NULL };
+
 #include <pppox/pppox.h>
-#include <pppox/pppd/pppd.h>
-#include <pppox/pppd/fsm.h>
-#include <pppox/pppd/lcp.h>
-#include <pppox/pppd/upap.h>
-#include <pppox/pppd/chap-new.h>
-#include <pppox/pppd/ipcp.h>
 
 #include <vppinfra/hash.h>
 #include <vppinfra/bihash_template.c>
