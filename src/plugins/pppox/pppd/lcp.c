@@ -193,14 +193,13 @@ int lcp_loopbackfail = DEFLOOPBACKFAIL;
  * lcp_init - Initialize LCP.
  */
 static void
-lcp_init(unit)
-    int unit;
+lcp_init (int unit)
 {
     fsm *f = &lcp_fsm[unit];
     lcp_options *wo = &lcp_wantoptions[unit];
     lcp_options *ao = &lcp_allowoptions[unit];
 
-    f->unit = unit;
+    f->CLIB_UNUSED (unit);
     f->protocol = PPP_LCP;
     f->callbacks = &lcp_callbacks;
 
@@ -240,8 +239,7 @@ lcp_init(unit)
  * lcp_open - LCP is allowed to come up.
  */
 void
-lcp_open(unit)
-    int unit;
+lcp_open (int unit)
 {
     fsm *f = &lcp_fsm[unit];
     lcp_options *wo = &lcp_wantoptions[unit];
@@ -294,8 +292,7 @@ lcp_close(unit, reason)
  * lcp_lowerup - The lower layer is up.
  */
 void
-lcp_lowerup(unit)
-    int unit;
+lcp_lowerup (int unit)
 {
     lcp_options *wo = &lcp_wantoptions[unit];
     fsm *f = &lcp_fsm[unit];
@@ -323,8 +320,7 @@ lcp_lowerup(unit)
  * lcp_lowerdown - The lower layer is down.
  */
 void
-lcp_lowerdown(unit)
-    int unit;
+lcp_lowerdown (int unit)
 {
     fsm *f = &lcp_fsm[unit];
 
@@ -473,8 +469,7 @@ lcp_rprotrej(f, inp, len)
  */
 /*ARGSUSED*/
 static void
-lcp_protrej(unit)
-    int unit;
+lcp_protrej (int unit)
 {
     /*
      * Can't reject LCP!

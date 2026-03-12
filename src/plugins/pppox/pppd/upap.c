@@ -102,12 +102,11 @@ static void upap_sresp __P((upap_state *, int, int, char *, int));
  * upap_init - Initialize a UPAP unit.
  */
 static void
-upap_init(unit)
-    int unit;
+upap_init (int unit)
 {
     upap_state *u = &upap[unit];
 
-    u->us_unit = unit;
+    u->us_CLIB_UNUSED (unit);
     //ZDY: will be set/free by pppox plugin, should not
     // clean when init because lcp maybe restart.
 #if 0
@@ -164,8 +163,7 @@ upap_authwithpeer(unit/*, user, password*/)
  * Set new state.
  */
 void
-upap_authpeer(unit)
-    int unit;
+upap_authpeer (int unit)
 {
     upap_state *u = &upap[unit];
 
@@ -229,8 +227,7 @@ upap_reqtimeout(arg)
  * Start authenticating if pending.
  */
 static void
-upap_lowerup(unit)
-    int unit;
+upap_lowerup (int unit)
 {
     upap_state *u = &upap[unit];
 
@@ -256,8 +253,7 @@ upap_lowerup(unit)
  * Cancel all timeouts.
  */
 static void
-upap_lowerdown(unit)
-    int unit;
+upap_lowerdown (int unit)
 {
     upap_state *u = &upap[unit];
 
@@ -277,8 +273,7 @@ upap_lowerdown(unit)
  * This shouldn't happen.  In any case, pretend lower layer went down.
  */
 static void
-upap_protrej(unit)
-    int unit;
+upap_protrej (int unit)
 {
     upap_state *u = &upap[unit];
 

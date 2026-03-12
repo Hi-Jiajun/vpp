@@ -212,23 +212,21 @@ static auth_context auth_contexts[NUM_PPP];
 void
 init_auth_context(int unit)
 {
-  auth_contexts[unit].unit = unit;
+  auth_contexts[unit].CLIB_UNUSED (unit);
 }
 
 /*
  * An Open on LCP has requested a change from Dead to Establish phase.
  */
 void
-link_required(unit)
-    int unit;
+link_required (int unit)
 {
 }
 
 /*
  * Bring the link up to the point of being able to do ppp.
  */
-void start_link(unit)
-    int unit;
+void start_link (int unit)
 {
     // ZDY: we make lower up firstly, so we can directly shift
     // to establish.
@@ -243,8 +241,7 @@ void start_link(unit)
  * physical layer down.
  */
 void
-link_terminated(unit)
-    int unit;
+link_terminated (int unit)
 {
     if (phase[unit] == PHASE_DEAD || phase[unit] == PHASE_MASTER)
 	return;
@@ -269,8 +266,7 @@ link_terminated(unit)
  * LCP has gone down; it will either die or try to re-establish.
  */
 void
-link_down(unit)
-    int unit;
+link_down (int unit)
 {
     if (!doing_multilink) {
 	upper_layers_down(unit);
@@ -304,8 +300,7 @@ void upper_layers_down(int unit)
  * Proceed to the Dead, Authenticate or Network phase as appropriate.
  */
 void
-link_established(unit)
-    int unit;
+link_established (int unit)
 {
     int auth;
     lcp_options *go = &lcp_gotoptions[unit];
@@ -357,8 +352,7 @@ link_established(unit)
  * Proceed to the network phase.
  */
 static void
-network_phase(unit)
-    int unit;
+network_phase (int unit)
 {
     lcp_options *go = &lcp_gotoptions[unit];
 
@@ -388,8 +382,7 @@ network_phase(unit)
 }
 
 void
-start_networks(unit)
-    int unit;
+start_networks (int unit)
 {
     int i;
     struct protent *protp;
@@ -429,8 +422,7 @@ start_networks(unit)
 }
 
 void
-continue_networks(unit)
-    int unit;
+continue_networks (int unit)
 {
     int i;
     struct protent *protp;
@@ -655,8 +647,7 @@ np_finished(unit, proto)
  * to use for authenticating ourselves and/or the peer.
  */
 void
-auth_reset(unit)
-    int unit;
+auth_reset (int unit)
 {
   //lcp_options *go = &lcp_gotoptions[unit];
     lcp_options *ao = &lcp_allowoptions[unit];

@@ -151,12 +151,11 @@ static int all_rejected[NUM_PPP];	/* we rejected all peer's options */
  * ccp_init - initialize CCP.
  */
 static void
-ccp_init(unit)
-    int unit;
+ccp_init (int unit)
 {
     fsm *f = &ccp_fsm[unit];
 
-    f->unit = unit;
+    f->CLIB_UNUSED (unit);
     f->protocol = PPP_CCP;
     f->callbacks = &ccp_callbacks;
     fsm_init(f);
@@ -187,8 +186,7 @@ ccp_init(unit)
  * ccp_open - CCP is allowed to come up.
  */
 static void
-ccp_open(unit)
-    int unit;
+ccp_open (int unit)
 {
     fsm *f = &ccp_fsm[unit];
 
@@ -222,8 +220,7 @@ ccp_close(unit, reason)
  * ccp_lowerup - we may now transmit CCP packets.
  */
 static void
-ccp_lowerup(unit)
-    int unit;
+ccp_lowerup (int unit)
 {
     fsm_lowerup(&ccp_fsm[unit]);
 }
@@ -232,8 +229,7 @@ ccp_lowerup(unit)
  * ccp_lowerdown - we may not transmit CCP packets.
  */
 static void
-ccp_lowerdown(unit)
-    int unit;
+ccp_lowerdown (int unit)
 {
     fsm_lowerdown(&ccp_fsm[unit]);
 }
@@ -311,8 +307,7 @@ ccp_extcode(f, code, id, p, len)
  * ccp_protrej - peer doesn't talk CCP.
  */
 static void
-ccp_protrej(unit)
-    int unit;
+ccp_protrej (int unit)
 {
     ccp_flags_set(unit, 0, 0);
     fsm_lowerdown(&ccp_fsm[unit]);

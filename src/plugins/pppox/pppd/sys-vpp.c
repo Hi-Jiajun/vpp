@@ -133,13 +133,13 @@ new_phase(int unit, int p)
 void netif_set_mtu (int unit, int mtu) /* Set PPP interface MTU */
 {
   // TODO: set pppox interface mtu??
-  unit = unit;
+  CLIB_UNUSED (unit);
   mtu = mtu;
 }
 
 int  netif_get_mtu (int unit)     /* Get PPP interface MTU */
 {
-  unit = unit;
+  CLIB_UNUSED (unit);
   return 0;
 }
 
@@ -373,7 +373,7 @@ sifnpmode(int u, int proto, enum NPmode mode)
 
 int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
 {
-  unit = unit;
+  CLIB_UNUSED (unit);
   ouraddr = ouraddr;
   gateway = gateway;
   return 1;
@@ -386,7 +386,7 @@ int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
 
 int sifproxyarp (int unit, u_int32_t his_adr)
 {
-  unit = unit;
+  CLIB_UNUSED (unit);
   his_adr = his_adr;
   return 1;
 }

@@ -22,7 +22,6 @@ add_vpp_plugin(pppox
     pppd/lcp.c
     pppd/ipcp.c
     pppd/upap.c
-    pppd/upap.c
     pppd/auth.c
     pppd/chap-md5.c
     pppd/chap-new.c
@@ -31,8 +30,6 @@ add_vpp_plugin(pppox
     pppd/utils.c
     pppd/options.c
     pppd/ccp.c
-    pppd/ccp.h
-    pppd/eap.h
     pppd/ecp.c
 
   API_FILES

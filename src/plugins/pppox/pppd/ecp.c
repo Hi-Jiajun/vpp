@@ -143,12 +143,11 @@ static fsm_callbacks ecp_callbacks = {
  * ecp_init - initialize ECP.
  */
 static void
-ecp_init(unit)
-    int unit;
+ecp_init (int unit)
 {
     fsm *f = &ecp_fsm[unit];
 
-    f->unit = unit;
+    f->CLIB_UNUSED (unit);
     f->protocol = PPP_ECP;
     f->callbacks = &ecp_callbacks;
     fsm_init(f);

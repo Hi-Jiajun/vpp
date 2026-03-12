@@ -209,14 +209,13 @@ u_int32_t ipaddr;
  * ipcp_init - Initialize IPCP.
  */
 static void
-ipcp_init(unit)
-    int unit;
+ipcp_init (int unit)
 {
     fsm *f = &ipcp_fsm[unit];
     ipcp_options *wo = &ipcp_wantoptions[unit];
     ipcp_options *ao = &ipcp_allowoptions[unit];
 
-    f->unit = unit;
+    f->CLIB_UNUSED (unit);
     f->protocol = PPP_IPCP;
     f->callbacks = &ipcp_callbacks;
     fsm_init(&ipcp_fsm[unit]);
@@ -264,8 +263,7 @@ ipcp_init(unit)
  * ipcp_open - IPCP is allowed to come up.
  */
 static void
-ipcp_open(unit)
-    int unit;
+ipcp_open (int unit)
 {
     fsm_open(&ipcp_fsm[unit]);
     ipcp_is_open[unit] = 1;
@@ -288,8 +286,7 @@ ipcp_close(unit, reason)
  * ipcp_lowerup - The lower layer is up.
  */
 static void
-ipcp_lowerup(unit)
-    int unit;
+ipcp_lowerup (int unit)
 {
     fsm_lowerup(&ipcp_fsm[unit]);
 }
@@ -299,8 +296,7 @@ ipcp_lowerup(unit)
  * ipcp_lowerdown - The lower layer is down.
  */
 static void
-ipcp_lowerdown(unit)
-    int unit;
+ipcp_lowerdown (int unit)
 {
     fsm_lowerdown(&ipcp_fsm[unit]);
 }
@@ -325,8 +321,7 @@ ipcp_input(unit, p, len)
  * Pretend the lower layer went down, so we shut up.
  */
 static void
-ipcp_protrej(unit)
-    int unit;
+ipcp_protrej (int unit)
 {
     fsm_lowerdown(&ipcp_fsm[unit]);
 }
