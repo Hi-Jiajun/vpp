@@ -71,7 +71,7 @@ static void vl_api_pppox_set_auth_t_handler
 {
   vl_api_pppox_set_auth_reply_t *rmp;
   int rv = 0;
-  pppox_main_t *pom = &pppox_main;
+  CLIB_UNUSED (pppox_main_t *pom) = &pppox_main;
   u8 * username = 0, * password = 0;
 
   int username_len = strlen ((char *) mp->username); vec_resize (username, username_len);
@@ -90,7 +90,7 @@ static void vl_api_pppox_set_auth_t_handler
 static clib_error_t *
 pppox_api_hookup (vlib_main_t * vm)
 {
-  pppox_main_t *pom = &pppox_main;
+  CLIB_UNUSED (pppox_main_t *pom) = &pppox_main;
 
   u8 *name = format (0, "pppox_%08x%c", api_version, 0);
   pom->msg_id_base = vl_msg_api_get_msg_ids

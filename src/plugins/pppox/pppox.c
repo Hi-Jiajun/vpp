@@ -203,10 +203,10 @@ pppox_build_rewrite (vnet_main_t * vnm,
   switch (link_type)
     {
     case VNET_LINK_IP4:
-      *((u16 *) rw) = clib_host_to_net_u16(PPP_PROTOCOL_ip4);
+      *((u16 *) rw) = clib_host_to_net_u16(PPP_PROTOCOL_IP4);
       break;
     case VNET_LINK_IP6:
-      *((u16 *) rw) = clib_host_to_net_u16(PPP_PROTOCOL_ip6);
+      *((u16 *) rw) = clib_host_to_net_u16(PPP_PROTOCOL_IP6);
       break;
     default:
       break;
@@ -255,7 +255,7 @@ __clib_export pppox_allocate_interface (u32 pppoe_client_index)
       vnet_interface_main_t *im = &vnm->interface_main;
       hw_if_index = pom->free_pppox_hw_if_indices
         [vec_len (pom->free_pppox_hw_if_indices) - 1];
-      _vec_len (pom->free_pppox_hw_if_indices) -= 1;
+      vec_pop (pom->free_pppox_hw_if_indices);
 
       hi = vnet_get_hw_interface (vnm, hw_if_index);
       hi->dev_instance = t - pom->virtual_interfaces;
