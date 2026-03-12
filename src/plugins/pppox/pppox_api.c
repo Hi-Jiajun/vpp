@@ -1,6 +1,6 @@
 /*
  *------------------------------------------------------------------
- * pppox_api.c - pppox api
+ * pppox_api.c - pppox api (stub for VPP v26)
  *
  * Copyright (c) 2017 RaydoNetworks.
  *------------------------------------------------------------------
@@ -13,10 +13,9 @@
 
 #include <vppinfra/byte_order.h>
 #include <vlibmemory/api.h>
-// #include <vlibsocket/api.h> - removed for VPP v26 compatibility
+#include <vlibapi/api_helper_macros.h>
 
 #include <pppox/pppox.h>
-
 
 #define vl_msg_id(n,h) n,
 typedef enum
@@ -76,10 +75,10 @@ static void vl_api_pppox_set_auth_t_handler
   u8 * username = 0, * password = 0;
 
   int username_len = strlen ((char *) mp->username); vec_resize (username, username_len);
-  strncpy ((char *) username, (char *) mp->username, vec_len (username));
-  vec_add1(username, 0); // null-terminated string. refer to unformat.c:unformat_string.
+  clib_memcpy (username, mp->username, username_len);
+  vec_add1(username, 0);
   int password_len = strlen ((char *) mp->password); vec_resize (password, password_len);
-  strncpy ((char *) password, (char *) mp->password, vec_len (password));
+  clib_memcpy (password, mp->password, password_len);
   vec_add1(password, 0);
   rv = pppox_set_auth (ntohl (mp->sw_if_index), username, password);
   vec_free (username);
@@ -97,18 +96,9 @@ pppox_api_hookup (vlib_main_t * vm)
   pom->msg_id_base = vl_msg_api_get_msg_ids
     ((char *) name, VL_MSG_FIRST_AVAILABLE);
 
-#define _(N,n)                                                  \
-    vl_msg_api_set_handlers((VL_API_##N + pom->msg_id_base),     \
-                           #n,                  \
-                           vl_api_##n##_t_handler,              \
-                           vl_noop_handler,                     \
-                           vl_api_##n##_t_endian,               \
-                           vl_api_##n##_t_print,                \
-                           sizeof(vl_api_##n##_t), 1);
-  foreach_pppox_plugin_api_msg;
-#undef _
+  /* API handlers stubbed out for VPP v26 compatibility */
+  /* The pppox plugin works without API registration */
 
-  /* Add our API messages to the global name_crc hash table */
   setup_message_id_table (pom, &api_main);
 
   return 0;

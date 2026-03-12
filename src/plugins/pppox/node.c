@@ -120,8 +120,6 @@ VLIB_REGISTER_NODE (pppox_input_node) = {
   .format_trace = format_pppox_rx_trace,
 };
 
-VLIB_NODE_FUNCTION_MULTIARCH (pppox_input_node, pppox_input)
-
 /// FOR PPPOX tx/////
 typedef struct {
   u32 sw_if_index;
