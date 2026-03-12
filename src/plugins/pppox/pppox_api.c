@@ -75,10 +75,10 @@ static void vl_api_pppox_set_auth_t_handler
   pppox_main_t *pom = &pppox_main;
   u8 * username = 0, * password = 0;
 
-  vec_validate (username, strlen ((char *) mp->username) - 1);
+  int username_len = strlen ((char *) mp->username); vec_resize (username, username_len);
   strncpy ((char *) username, (char *) mp->username, vec_len (username));
   vec_add1(username, 0); // null-terminated string. refer to unformat.c:unformat_string.
-  vec_validate (password, strlen ((char *) mp->password) - 1);
+  int password_len = strlen ((char *) mp->password); vec_resize (password, password_len);
   strncpy ((char *) password, (char *) mp->password, vec_len (password));
   vec_add1(password, 0);
   rv = pppox_set_auth (ntohl (mp->sw_if_index), username, password);
