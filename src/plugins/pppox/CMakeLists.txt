@@ -17,6 +17,7 @@ add_vpp_plugin(pppox
     node.c
     pppox.c
     pppox_api.c
+    pppd/sys-vpp.c
 
   API_FILES
     pppox.api
