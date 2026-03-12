@@ -34,7 +34,7 @@
 
 typedef struct { int state; } fsm_t;
 static fsm_t lcp_fsm[16];
-static int lcp_sprotrej(int unit, char *p, int len) { return 0; }
+static int lcp_sprotrej(int unit, u8 *p, int len) { return 0; }
 #define pppd_calltimeout() 
 static void lcp_close(int unit, char *reason) {}
 
