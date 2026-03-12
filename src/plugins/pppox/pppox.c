@@ -23,6 +23,10 @@
 // Stub protocols array for pppox plugin
 struct protent;
 static struct protent *stub_protocols[] = { NULL };
+#define protocols stub_protocols
+
+#include <pppox/pppd/pppd.h>
+#include <pppox/pppd/lcp.h>
 
 #include <pppox/pppox.h>
 
