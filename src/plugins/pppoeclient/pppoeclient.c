@@ -627,9 +627,13 @@ vnet_pppoe_add_del_client (vnet_pppoe_add_del_client_args_t * a,
       // finally we should add new cli to pppox plugin and assosicate the pppox virtual interface
       // and pppoeclient.
       static u32 (*pppox_allocate_interface_func) (u32) = 0;
-      if (pppox_allocate_interface_func ==0 )
+      if (pppox_allocate_interface_func == 0)
       {
 	pppox_allocate_interface_func = vlib_get_plugin_symbol("pppox_plugin.so", "pppox_allocate_interface");
+      }
+      if (pppox_allocate_interface_func == 0)
+      {
+        return VNET_API_ERROR_UNSUPPORTED;
       }
       pppox_hw_if_index = (*pppox_allocate_interface_func)(result.fields.client_index);
       c->pppox_hw_if_index = pppox_hw_if_index;
@@ -882,3 +886,4 @@ VLIB_PLUGIN_REGISTER () = {
  * eval: (c-set-style "gnu")
  * End:
  */
+
