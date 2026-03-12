@@ -40,6 +40,51 @@ typedef struct
 
 
 #define ETH_JUMBO_LEN 1508
+
+/* PPP Protocol Numbers */
+#define PPP_LCP 0xc021
+#define PPP_PAP 0xc023
+#define PPP_CHAP 0xc025
+#define PPP_IPCP 0x8021
+#define PPP_IPV6CP 0x8057
+#define PPP_IP 0x0021
+#define PPP_IPV6 0x0057
+
+/* LCP Packet Types */
+#define LCP_CONFIGURE_REQUEST 1
+#define LCP_CONFIGURE_ACK 2
+#define LCP_CONFIGURE_NAK 3
+#define LCP_TERMINATE_REQUEST 5
+#define LCP_TERMINATE_ACK 6
+#define LCP_ECHO_REQUEST 9
+#define LCP_ECHO_REPLY 10
+
+/* LCP Options */
+#define LCP_OPTION_MRU 1
+#define LCP_OPTION_AUTH 3
+#define LCP_OPTION_MAGIC 5
+
+/* LCP Packet Header */
+typedef struct {
+  u8 code;
+  u8 id;
+  u16 length;
+} lcp_header_t;
+
+/* PAP Packet Header */
+typedef struct {
+  u8 code;
+  u8 id;
+  u16 length;
+} pap_header_t;
+
+/* IPCP Packet Header */
+typedef struct {
+  u8 code;
+  u8 id;
+  u16 length;
+} ipcp_header_t;
+
 typedef struct
 {
   u16 type; // net order for direct send.
@@ -118,6 +163,18 @@ typedef struct
   u8 use_peer_route;
   u32 ip4_addr;
   u32 ip4_netmask;
+  u32 ip4_gateway;
+  u32 dns1;
+  u32 dns2;
+
+  /* LCP state */
+  u8 lcp_state;
+  u8 lcp_id;
+  u8 lcp_nak;
+
+  /* IPCP state */
+  u8 ipcp_state;
+  u8 ipcp_id;
 } pppoe_client_t;
 
 typedef enum
