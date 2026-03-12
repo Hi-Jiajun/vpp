@@ -13,7 +13,7 @@
 
 #include <vppinfra/byte_order.h>
 #include <vlibmemory/api.h>
-#include <vlibsocket/api.h>
+// #include <vlibsocket/api.h> - removed for VPP v26 compatibility
 
 #include <pppox/pppox.h>
 

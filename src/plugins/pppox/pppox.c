@@ -46,7 +46,7 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   int i = 0;
   u16 protocol = 0;
   struct protent *protp;
-  int len = vnet_buffer(b)->pppox.len;
+  int len = b->current_length;
   // Use virtual interface context index as pppd unit number.
   u8 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
 
@@ -109,7 +109,7 @@ pppox_restart_dead_client()
   pppox_main_t * pom = &pppox_main;
   pppox_virtual_interface_t * vif;
 
-  pool_foreach (vif, pom->virtual_interfaces, ({
+  pool_foreach (vif, pom->virtual_interfaces) {
     int unit = pom->virtual_interface_index_by_sw_if_index[vif->sw_if_index];
     if (phase[unit] == PHASE_DEAD && vif->pppoe_session_allocated) {
       // notify pppoe to open session to start.
@@ -255,7 +255,7 @@ __clib_export pppox_allocate_interface (u32 pppoe_client_index)
       vnet_interface_main_t *im = &vnm->interface_main;
       hw_if_index = pom->free_pppox_hw_if_indices
         [vec_len (pom->free_pppox_hw_if_indices) - 1];
-      _vec_len (pom->free_pppox_hw_if_indices) -= 1;
+      vec_dec (pom->free_pppox_hw_if_indices);
 
       hi = vnet_get_hw_interface (vnm, hw_if_index);
       hi->dev_instance = t - pom->virtual_interfaces;
@@ -621,7 +621,7 @@ int sifaddr (int unit, u32 our_adr, u32 his_adr,
   a.our_adr = our_adr;
   a.his_adr = his_adr;
   // oss-pppd passed net_mask is not used, always treat as host address.
-  net_mask = net_mask;
+  // net_mask = net_mask; // removed self-assign
   a.net_mask = 32;
   a.is_add = 1;
 
