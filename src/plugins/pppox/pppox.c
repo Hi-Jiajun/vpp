@@ -452,14 +452,6 @@ pppox_lower_down(u32 sw_if_index)
     t->pppoe_session_allocated = 0;
   }
 }
-  t = pool_elt_at_index (pom->virtual_interfaces, unit);
-  
-  lcp_close(unit, "lower down (remote close session/underlying physical interface down");
-
-  t->pppoe_session_allocated = 0;
-
-  return;
-}
 
 int
 pppox_set_auth (u32 sw_if_index, u8 * username, u8 * password)
