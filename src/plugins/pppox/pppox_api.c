@@ -55,6 +55,7 @@ typedef enum
 #include <vlibapi/api_helper_macros.h>
 
 static void
+__attribute__((unused))
 setup_message_id_table (pppox_main_t * pom, api_main_t * am)
 {
 #define _(id,n,crc) \
@@ -66,7 +67,8 @@ setup_message_id_table (pppox_main_t * pom, api_main_t * am)
 #define foreach_pppox_plugin_api_msg                             \
 _(PPPOX_SET_AUTH, pppox_set_auth)
 
-static void vl_api_pppox_set_auth_t_handler
+static void __attribute__((unused))
+vl_api_pppox_set_auth_t_handler
   (vl_api_pppox_set_auth_t * mp)
 {
   vl_api_pppox_set_auth_reply_t *rmp;
