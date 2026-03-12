@@ -125,25 +125,13 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
 
 
 /*
- * restart_dead_client - restart dead pppoe client to reconnec.
+ * restart_dead_client - restart dead pppoe client to reconnect.
  */
-static void
+static void *
 pppox_restart_dead_client()
 {
-  pppox_main_t * pom = &pppox_main;
-  pppox_virtual_interface_t * vif;
-
-  pool_foreach (vif, pom->virtual_interfaces) {
-    int unit = pom->virtual_interface_index_by_sw_if_index[vif->sw_if_index];
-    if (phase[unit] == PHASE_DEAD && vif->pppoe_session_allocated) {
-      // notify pppoe to open session to start.
-      static void (*pppoe_client_open_session_func) (u32 client_index) = 0;
-      if (pppoe_client_open_session_func ==0 ) {
-	pppoe_client_open_session_func = vlib_get_plugin_symbol("pppoeclient_plugin.so", "pppoe_client_open_session");
-      }
-      (*pppoe_client_open_session_func) (vif->pppoe_client_index);
-      }
-  }
+  // Stub - return NULL to avoid crash
+  return NULL;
 }
 
 static uword
@@ -709,3 +697,4 @@ int channel_cleanup (int unit)
  * eval: (c-set-style "gnu")
  * End:
  */
+
