@@ -70,46 +70,75 @@
 
 #define RCSID	"$Id: auth.c,v 1.117 2008/07/01 12:27:56 paulus Exp $"
 
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <pwd.h>
-#include <grp.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <utmp.h>
-#include <fcntl.h>
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
 #if defined(_PATH_LASTLOG) && defined(__linux__)
-#include <lastlog.h>
+#include <vppinfra/clib.h>
+
 #endif
 
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
 
 
 #ifdef HAS_SHADOW
-#include <shadow.h>
+#include <vppinfra/clib.h>
+
 #ifndef PW_PPP
 #define PW_PPP PW_LOGIN
 #endif
 #endif
-#include <time.h>
+#include <vppinfra/clib.h>
 
-#include "pppd.h"
-#include "fsm.h"
-#include "lcp.h"
-#include "ccp.h"
-#include "ecp.h"
-#include "ipcp.h"
-#include "upap.h"
-#include "chap-new.h"
-#include "eap.h"
-#include "pathnames.h"
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
+#include <vppinfra/clib.h>
+
 
 //static const char rcsid[] = RCSID;
 

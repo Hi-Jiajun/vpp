@@ -4,6 +4,7 @@
  * Copyright (c) 2017 RaydoNetworks.
  *
  */
+#include <vppinfra/clib.h>
 #include "stdlib.h"
 #include "pppd.h"
 #include "fsm.h"
