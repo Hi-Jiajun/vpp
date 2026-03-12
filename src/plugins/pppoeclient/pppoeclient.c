@@ -861,6 +861,10 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
   u32 mtu = 0;
   u32 mru = 0;
   u32 timeout = 0;
+  u8 use_peer_dns = 0;
+  u8 use_peer_route = 0;
+  u32 ip4_addr = 0;
+  u32 ip4_netmask = 0;
 
   while (unformat_check_input (input) != UNFORMAT_END_OF_INPUT)
     {
@@ -876,6 +880,10 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
         ;
       else if (unformat (input, "timeout %u", &timeout))
         ;
+      else if (unformat (input, "use-peer-dns"))
+        use_peer_dns = 1;
+      else if (unformat (input, "use-peer-route"))
+        use_peer_route = 1;
       else
         break;
     }
@@ -904,6 +912,10 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
     c->mru = mru;
   if (timeout > 0)
     c->timeout = timeout;
+  if (use_peer_dns)
+    c->use_peer_dns = 1;
+  if (use_peer_route)
+    c->use_peer_route = 1;
 
   vlib_cli_output (vm, "PPPoE client %u updated", client_index);
   return 0;
@@ -912,7 +924,7 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
 /* *INDENT-OFF* */
 VLIB_CLI_COMMAND (set_pppoe_client_command, static) = {
     .path = "set pppoe client",
-    .short_help = "set pppoe client <index> username <user> password <pass> [mtu <n>] [mru <n>] [timeout <n>]",
+    .short_help = "set pppoe client <index> username <user> password <pass> [mtu <n>] [mru <n>] [timeout <n>] [use-peer-dns] [use-peer-route]",
     .function = set_pppoe_client_command_fn,
 };
 /* *INDENT-ON* */

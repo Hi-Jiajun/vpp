@@ -112,6 +112,12 @@ typedef struct
   u32 mtu;
   u32 mru;
   u32 timeout;
+
+  /* Options */
+  u8 use_peer_dns;
+  u8 use_peer_route;
+  u32 ip4_addr;
+  u32 ip4_netmask;
 } pppoe_client_t;
 
 typedef enum
