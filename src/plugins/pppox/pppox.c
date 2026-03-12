@@ -12,7 +12,12 @@
 #include <vnet/dpo/interface_tx_dpo.h>
 #include <vnet/plugin/plugin.h>
 #include <vpp/app/version.h>
-#include <vnet/ppp/packet.h>
+// PPP protocol definitions - moved from vnet/ppp/packet.h
+#define PPP_PROTOCOL_IP4 0x0021
+#define PPP_PROTOCOL_IP6 0x0057
+#define PPP_PROTOCOL_IPX 0x002B
+#define PPP_PROTOCOL_VJ_COMP 0x002D
+#define PPP_PROTOCOL_VJ_UCOMP 0x002F
 
 #include <pppox/pppox.h>
 #include <pppox/pppd/pppd.h>
