@@ -19,6 +19,8 @@ add_vpp_plugin(pppox
     pppox_api.c
     pppd/sys-vpp.c
 
+  CFLAGS -Wno-error -w
+
   API_FILES
     pppox.api
 )
