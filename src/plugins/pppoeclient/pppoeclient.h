@@ -105,6 +105,13 @@ typedef struct
   /* pppox intf index */
   u32 pppox_sw_if_index;
   u32 pppox_hw_if_index;
+
+  /* Authentication */
+  u8 *username;
+  u8 *password;
+  u32 mtu;
+  u32 mru;
+  u32 timeout;
 } pppoe_client_t;
 
 typedef enum

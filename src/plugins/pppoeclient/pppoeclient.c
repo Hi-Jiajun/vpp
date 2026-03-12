@@ -848,6 +848,75 @@ VLIB_CLI_COMMAND (show_pppoe_client_command, static) = {
 };
 /* *INDENT-ON* */
 
+static clib_error_t *
+set_pppoe_client_command_fn (vlib_main_t * vm,
+                              unformat_input_t * input,
+                              vlib_cli_command_t * cmd)
+{
+  pppoeclient_main_t *pem = &pppoeclient_main;
+  pppoe_client_t *c = NULL;
+  u32 client_index = ~0;
+  u8 *username = NULL;
+  u8 *password = NULL;
+  u32 mtu = 0;
+  u32 mru = 0;
+  u32 timeout = 0;
+
+  while (unformat_check_input (input) != UNFORMAT_END_OF_INPUT)
+    {
+      if (unformat (input, "%u", &client_index))
+        ;
+      else if (unformat (input, "username %s", &username))
+        ;
+      else if (unformat (input, "password %s", &password))
+        ;
+      else if (unformat (input, "mtu %u", &mtu))
+        ;
+      else if (unformat (input, "mru %u", &mru))
+        ;
+      else if (unformat (input, "timeout %u", &timeout))
+        ;
+      else
+        break;
+    }
+
+  if (client_index == ~0)
+    return clib_error_return (0, "please specify client index");
+
+  if (client_index >= pool_elts (pem->clients))
+    return clib_error_return (0, "invalid client index");
+
+  c = pool_elt_at_index (pem->clients, client_index);
+
+  if (username)
+    {
+      vec_free (c->username);
+      c->username = username;
+    }
+  if (password)
+    {
+      vec_free (c->password);
+      c->password = password;
+    }
+  if (mtu > 0)
+    c->mtu = mtu;
+  if (mru > 0)
+    c->mru = mru;
+  if (timeout > 0)
+    c->timeout = timeout;
+
+  vlib_cli_output (vm, "PPPoE client %u updated", client_index);
+  return 0;
+}
+
+/* *INDENT-OFF* */
+VLIB_CLI_COMMAND (set_pppoe_client_command, static) = {
+    .path = "set pppoe client",
+    .short_help = "set pppoe client <index> username <user> password <pass> [mtu <n>] [mru <n>] [timeout <n>]",
+    .function = set_pppoe_client_command_fn,
+};
+/* *INDENT-ON* */
+
 clib_error_t *
 pppoeclient_init (vlib_main_t * vm)
 {
