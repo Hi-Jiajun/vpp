@@ -161,8 +161,8 @@ typedef struct
   /* Options */
   u8 use_peer_dns;
   u8 use_peer_route;
-  u32 ip4_addr;
-  u32 ip4_netmask;
+  CLIB_UNUSED (u32 ip4_addr);
+  CLIB_UNUSED (u32 ip4_netmask);
   u32 ip4_gateway;
   u32 dns1;
   u32 dns2;

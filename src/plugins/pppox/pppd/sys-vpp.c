@@ -137,13 +137,13 @@ new_phase(int unit, int p)
 void netif_set_mtu (int unit, int mtu) /* Set PPP interface MTU */
 {
   // TODO: set pppox interface mtu??
-  CLIB_UNUSED (unit);
+  (void)unit;
   mtu = mtu;
 }
 
 int  netif_get_mtu (int unit)     /* Get PPP interface MTU */
 {
-  CLIB_UNUSED (unit);
+  (void)unit;
   return 0;
 }
 
@@ -222,7 +222,7 @@ untimeout(func, arg)
  * calltimeout - Call any timeout routines which are now due.
  */
 void
-pppd_calltimeout()
+pppd_calltimeout(void)
 {
   struct callout *p;
 
@@ -377,7 +377,7 @@ sifnpmode(int u, int proto, enum NPmode mode)
 
 int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
 {
-  CLIB_UNUSED (unit);
+  (void)unit;
   ouraddr = ouraddr;
   gateway = gateway;
   return 1;
@@ -390,7 +390,7 @@ int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
 
 int sifproxyarp (int unit, u_int32_t his_adr)
 {
-  CLIB_UNUSED (unit);
+  (void)unit;
   his_adr = his_adr;
   return 1;
 }
