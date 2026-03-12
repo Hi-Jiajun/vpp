@@ -333,13 +333,13 @@ pppox_handle_allocated_address (pppox_virtual_interface_t * t, u8 is_add)
   pfx.fp_proto = FIB_PROTOCOL_IP4;
   if ( is_add ) {
     fib_table_entry_path_add (0, &pfx,
-			      FIB_SOURCE_PLUGIN_HI, FIB_ENTRY_FLAG_NONE,
+			      FIB_SOURCE_API, FIB_ENTRY_FLAG_NONE,
 			      fib_proto_to_dpo (pfx.fp_proto),
 			      &pfx.fp_addr, t->sw_if_index, ~0,
 			      1, NULL, FIB_ROUTE_PATH_FLAG_NONE);
   } else {
     fib_table_entry_path_remove (0, &pfx,
-			      FIB_SOURCE_PLUGIN_HI,
+			      FIB_SOURCE_API,
 			      fib_proto_to_dpo (pfx.fp_proto),
 			      &pfx.fp_addr, t->sw_if_index, ~0,
 			      1, FIB_ROUTE_PATH_FLAG_NONE);
