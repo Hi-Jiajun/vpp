@@ -37,7 +37,7 @@ struct channel *the_channel = &vpp_channel;
  * The last entry must be NULL.
  */
 // We only support limited protocol.
-struct protent *protocols[] = {
+struct protent *protocols[] __attribute__((visibility("default"))) = {
     &lcp_protent,
     &pap_protent,
     &ipcp_protent,
