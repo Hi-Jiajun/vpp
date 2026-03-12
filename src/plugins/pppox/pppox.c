@@ -119,7 +119,7 @@ pppox_restart_dead_client()
       }
       (*pppoe_client_open_session_func) (vif->pppoe_client_index);
       }
-  }));
+  }
 }
 
 static uword
@@ -255,7 +255,7 @@ __clib_export pppox_allocate_interface (u32 pppoe_client_index)
       vnet_interface_main_t *im = &vnm->interface_main;
       hw_if_index = pom->free_pppox_hw_if_indices
         [vec_len (pom->free_pppox_hw_if_indices) - 1];
-      vec_dec (pom->free_pppox_hw_if_indices);
+      _vec_len (pom->free_pppox_hw_if_indices) -= 1;
 
       hi = vnet_get_hw_interface (vnm, hw_if_index);
       hi->dev_instance = t - pom->virtual_interfaces;
