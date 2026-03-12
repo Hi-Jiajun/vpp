@@ -21,7 +21,7 @@ add_vpp_plugin(pppox
     pppd/fsm.c
     pppd/lcp.c
     pppd/ipcp.c
-    pppd/pap.c
+    pppd/upap.c
     pppd/upap.c
     pppd/auth.c
     pppd/chap-md5.c
