@@ -17,6 +17,9 @@
 // code that iteractivate with vpp should be moved to pppox.c
 extern void channel_cleanup (int unit);
 
+/* PPP phase state array - stub definition */
+int phase[NUM_PPP];
+
 struct channel vpp_channel = {
   .options = 0,
   .process_extra_options = 0,
