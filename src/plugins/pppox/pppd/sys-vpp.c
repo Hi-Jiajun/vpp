@@ -4,11 +4,11 @@
  * Copyright (c) 2017 RaydoNetworks.
  *
  */
-#include <vppinfra/clib.h>
 #include "stdlib.h"
 #include "pppd.h"
 #include "fsm.h"
 #include "ipcp.h"
+#include "ipv6cp.h"
 #include "upap.h"
 #include "chap-new.h"
 #include "lcp.h"
@@ -16,9 +16,6 @@
 // NOTE: too keep relative independency, code here are used only to keep pppd compiled.
 // code that iteractivate with vpp should be moved to pppox.c
 extern void channel_cleanup (int unit);
-
-/* PPP phase state array - stub definition */
-int phase[NUM_PPP];
 
 struct channel vpp_channel = {
   .options = 0,
@@ -41,10 +38,11 @@ struct channel *the_channel = &vpp_channel;
  * The last entry must be NULL.
  */
 // We only support limited protocol.
-struct protent *protocols[] __attribute__((visibility("default"))) = {
+struct protent *protocols[] = {
     &lcp_protent,
     &pap_protent,
     &ipcp_protent,
+    &ipv6cp_protent,
     &chap_protent,
     NULL
 };
@@ -137,13 +135,13 @@ new_phase(int unit, int p)
 void netif_set_mtu (int unit, int mtu) /* Set PPP interface MTU */
 {
   // TODO: set pppox interface mtu??
-  (void)unit;
+  unit = unit;
   mtu = mtu;
 }
 
 int  netif_get_mtu (int unit)     /* Get PPP interface MTU */
 {
-  (void)unit;
+  unit = unit;
   return 0;
 }
 
@@ -222,7 +220,7 @@ untimeout(func, arg)
  * calltimeout - Call any timeout routines which are now due.
  */
 void
-pppd_calltimeout(void)
+pppd_calltimeout()
 {
   struct callout *p;
 
@@ -377,7 +375,7 @@ sifnpmode(int u, int proto, enum NPmode mode)
 
 int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
 {
-  (void)unit;
+  unit = unit;
   ouraddr = ouraddr;
   gateway = gateway;
   return 1;
@@ -390,7 +388,7 @@ int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
 
 int sifproxyarp (int unit, u_int32_t his_adr)
 {
-  (void)unit;
+  unit = unit;
   his_adr = his_adr;
   return 1;
 }

@@ -17,27 +17,31 @@
 /* PPP protocols not defined in newer VPP */
 
 #ifndef PPP_PROTOCOL_ipcp
-
 #define PPP_PROTOCOL_ipcp 0x8021
+#endif
 
+#ifndef PPP_PROTOCOL_ipv6cp
+#define PPP_PROTOCOL_ipv6cp 0x8057
 #endif
 
 #ifndef PPP_PROTOCOL_lcp
-
 #define PPP_PROTOCOL_lcp 0xc021
-
 #endif
 
 #ifndef PPP_PROTOCOL_pap
-
 #define PPP_PROTOCOL_pap 0xc023
-
 #endif
 
 #ifndef PPP_PROTOCOL_chap
-
 #define PPP_PROTOCOL_chap 0xc223
+#endif
 
+#ifndef PPP_PROTOCOL_ip4
+#define PPP_PROTOCOL_ip4 0x0021
+#endif
+
+#ifndef PPP_PROTOCOL_ip6
+#define PPP_PROTOCOL_ip6 0x0057
 #endif
 
 
@@ -64,7 +68,9 @@ typedef struct {
 
   u16 session_id;
 
-  u16 rsv;
+  u8 packet_code;
+
+  u8 rsv;
 
   u32 error;
 
@@ -296,7 +302,7 @@ VLIB_REGISTER_NODE (pppoeclient_discovery_input_node) = {
 
 // ethernet II MT(1500B) - pppoe overhead(8B) - IPv4(20B) - TCP(20B)
 
-// TODO: ¿ÉÄÜÒª¿¼ÂÇÊ¹ÓÃÖ§³ÖMRUÐ­ÉÌµÄÊý¾Ý
+// TODO: ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½Ö§ï¿½ï¿½MRUÐ­ï¿½Ìµï¿½ï¿½ï¿½ï¿½ï¿½
 
 #define PPPOE_DEFAULT_TCP_MSS 1452
 
@@ -634,11 +640,25 @@ pppoeclient_session_input (vlib_main_t * vm,
 
             }
 
+          else if (ppp_proto0 == PPP_PROTOCOL_ip6)
+
+            {
+
+              // give only ip6 packet for ip6-input.
+
+              vlib_buffer_advance(b0, sizeof (ppp_proto0));
+
+	      next0 = PPPOECLIENT_SESSION_INPUT_NEXT_IP6_INPUT;
+
+            }
+
           else if ((ppp_proto0 == PPP_PROTOCOL_lcp) ||
 
                    (ppp_proto0 == PPP_PROTOCOL_pap) ||
 
                    (ppp_proto0 == PPP_PROTOCOL_ipcp) ||
+                   
+                   (ppp_proto0 == PPP_PROTOCOL_ipv6cp) ||
 
 		   (ppp_proto0 == PPP_PROTOCOL_chap))
 
@@ -784,11 +804,25 @@ pppoeclient_session_input (vlib_main_t * vm,
 
             }
 
+          else if (ppp_proto1 == PPP_PROTOCOL_ip6)
+
+            {
+
+	      // give only ip6 packet for ip6-input.
+
+              vlib_buffer_advance(b1, sizeof (ppp_proto1));
+
+              next1 = PPPOECLIENT_SESSION_INPUT_NEXT_IP6_INPUT;
+
+            }
+
           else if ((ppp_proto1 == PPP_PROTOCOL_lcp) ||
 
                    (ppp_proto1 == PPP_PROTOCOL_pap) ||
 
                    (ppp_proto1 == PPP_PROTOCOL_ipcp) ||
+                   
+                   (ppp_proto1 == PPP_PROTOCOL_ipv6cp) ||
 
 		   (ppp_proto1 == PPP_PROTOCOL_chap))
 

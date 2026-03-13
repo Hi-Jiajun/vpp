@@ -21,6 +21,7 @@
 #include <vnet/fib/fib_table.h>
 #include <vlib/vlib.h>
 #include <vppinfra/bihash_8_8.h>
+#include <vlib/buffer_funcs.h>
 
 typedef struct
 {
@@ -145,6 +146,7 @@ typedef struct
   /* Send next pkt at this time */
   f64 next_transmit;
   u8 ac_mac_address[6];
+  u8 *ac_name;  /* AC-Name from PADO */
   u16 session_id;
 
   /* pppox intf index */
@@ -175,6 +177,15 @@ typedef struct
   /* IPCP state */
   u8 ipcp_state;
   u8 ipcp_id;
+
+  /* IPv6 options (IPv6CP) */
+  u8 use_peer_ipv6;
+  u8 ipv6_prefix_len;
+  ip6_address_t ip6_addr;
+  ip6_address_t ip6_peer_addr;
+  /* IPv6CP state */
+  u8 ipv6cp_state;
+  u8 ipv6cp_id;
 } pppoe_client_t;
 
 typedef enum
@@ -198,6 +209,7 @@ typedef enum
 
 #define foreach_pppoeclient_session_input_next       \
 _(IP4_INPUT, "ip4-input") \
+_(IP6_INPUT, "ip6-input") \
 _(PPPOX_INPUT, "pppox-input")                   \
 _(DROP, "error-drop")
 
@@ -310,6 +322,9 @@ typedef struct
 
   /* API message ID base */
   u16 msg_id_base;
+
+  /* Packet template for PPPoE discovery packets */
+  vlib_packet_template_t packet_template;
 
   /* convenience */
   vlib_main_t *vlib_main;

@@ -67,6 +67,9 @@ typedef struct
   /* record allocated address. */
   u32 our_addr;
   u32 his_addr;
+  /* IPv6 addresses */
+  ip6_address_t our_ipv6;
+  ip6_address_t his_ipv6;
 } pppox_virtual_interface_t;
 
 typedef struct
@@ -95,9 +98,9 @@ extern vlib_node_registration_t pppox_output_node;
 
 int consume_pppox_ctrl_pkt (u32, vlib_buffer_t *);
 
-__clib_export u32 pppox_allocate_interface(u32);
+u32 pppox_allocate_interface(u32);
 
-__clib_export void pppox_free_interface(u32);
+void pppox_free_interface(u32);
 
 void pppox_lower_up(u32);
 

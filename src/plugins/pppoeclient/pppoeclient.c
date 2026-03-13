@@ -49,8 +49,9 @@ send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
   if ((sw->flags & VNET_SW_INTERFACE_FLAG_ADMIN_UP) == 0)
     return;
 
-  // TODO: should we should use packet template to prevent allocate buffer????
-  if (vlib_buffer_alloc (vm, &bi, 1) != 1) {
+  // Use packet template to get buffer (better performance via buffer reuse)
+  void *pkt = vlib_packet_template_get_packet (vm, &pem->packet_template, &bi);
+  if (pkt == 0) {
     clib_warning ("buffer allocation failure");
     c->next_transmit = 0;
     return;
@@ -323,13 +324,18 @@ void parse_pado_tags (u16 type, u16 len, unsigned char * data, void * extra)
 
   switch (type) {
   case PPPOE_TAG_SERVICE_NAME:
-  case PPPOE_TAG_AC_NAME:
   case PPPOE_TAG_RELAY_SESSION_ID:
   case PPPOE_TAG_PPP_MAX_PAYLOAD:
   case PPPOE_TAG_SERVICE_NAME_ERROR:
   case PPPOE_TAG_AC_SYSTEM_ERROR:
   case PPPOE_TAG_GENERIC_ERROR:
     // nothing need to do currently.
+    break;
+  case PPPOE_TAG_AC_NAME:
+    /* Record AC-Name for debug purposes */
+    vec_free (c->ac_name);
+    vec_validate (c->ac_name, len);
+    clib_memcpy (c->ac_name, data, len);
     break;
   case PPPOE_TAG_AC_COOKIE:
     c->cookie.type = htons(type);
@@ -616,6 +622,18 @@ vnet_pppoe_add_del_client (vnet_pppoe_add_del_client_args_t * a,
       // TODO: assure interface is ethernet hardware interface.
       sw = vnet_get_sw_interface (vnm, a->sw_if_index);
       c->hw_if_index = sw->hw_if_index;
+
+      /* Check if interface is an ethernet hardware interface */
+      {
+        vnet_hw_interface_t *hw = vnet_get_hw_interface (vnm, c->hw_if_index);
+        vnet_hw_interface_class_t *hw_class =
+          vnet_get_hw_interface_class (hw->hw_class_index);
+        if (hw_class != ethernet_hw_interface_class)
+          {
+            pool_put (pem->clients, c);
+            return VNET_API_ERROR_INVALID_INTERFACE;
+          }
+      }
 
       result.fields.client_index = c - pem->clients;
       pppoeclient_update_1 (&pem->client_table,
@@ -933,6 +951,9 @@ clib_error_t *
 pppoeclient_init (vlib_main_t * vm)
 {
   pppoeclient_main_t *pem = &pppoeclient_main;
+  u8 *packet_data;
+  ethernet_header_t *eth;
+  pppoe_header_t *pppoe;
 
   pem->vnet_main = vnet_get_main ();
   pem->vlib_main = vm;
@@ -940,8 +961,26 @@ pppoeclient_init (vlib_main_t * vm)
   /* Create the hash table  */
   BV (clib_bihash_init) (&pem->client_table, "pppoe client table",
                          PPPOE_CLIENT_NUM_BUCKETS, PPPOE_CLIENT_MEMORY_SIZE);
-  BV (clib_bihash_init) (&pem->session_table, "pppoe client_session table",
+ BV (clib_bihash_init) (&pem->session_table, "pppoe client_session table",
                          PPPOE_CLIENT_NUM_BUCKETS, PPPOE_CLIENT_MEMORY_SIZE);
+
+  /* Initialize packet template for PPPoE discovery packets */
+  packet_data = 0;
+  vec_validate(packet_data, sizeof(ethernet_header_t) + sizeof(pppoe_header_t) - 1);
+  eth = (ethernet_header_t *) packet_data;
+  eth->type = clib_host_to_net_u16 (ETHERNET_TYPE_PPPOE_DISCOVERY);
+  memset(eth->dst_address, 0, 6);
+  memset(eth->src_address, 0, 6);
+  pppoe = (pppoe_header_t *)(eth + 1);
+  pppoe->ver_type = PPPOE_VER_TYPE;
+  pppoe->code = 0;
+  pppoe->session_id = 0;
+  pppoe->length = 0;
+
+  vlib_packet_template_init (vm, &pem->packet_template,
+                             packet_data, vec_len(packet_data),
+                             4, "pppoe-discovery-packet");
+  vec_free(packet_data);
 
   ethernet_register_input_type (vm, ETHERNET_TYPE_PPPOE_DISCOVERY,
                                 pppoeclient_discovery_input_node.index);
