@@ -106,7 +106,7 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   /*
    * Upcall the proper protocol input routine.
    */
-  for (i = 0; (protp = protocols[i]) != NULL; ++i) {
+  //for (i = 0; (protp = protocols[i]) != NULL; ++i) {
     if (protp->protocol == protocol && protp->enabled_flag) {
       (*protp->input)(unit, p, len);
       return 0;

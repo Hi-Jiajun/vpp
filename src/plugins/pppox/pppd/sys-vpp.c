@@ -1,4 +1,7 @@
 /*
+#include <vppinfra/types.h>
+#include <stdbool.h>
+#include <stdbool.h>
  * sys-vpp.c - adapt pppd on vpp platform.
  *
  * Copyright (c) 2017 RaydoNetworks.

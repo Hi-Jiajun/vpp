@@ -1,4 +1,7 @@
 /*
+#include <vppinfra/types.h>
+#include <stdbool.h>
+#include <stdbool.h>
  * ipv6cp.h - IPv6 Control Protocol definitions.
  *
  * Copyright (c) 1984-2000 Carnegie Mellon University. All rights reserved.

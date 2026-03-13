@@ -1,4 +1,7 @@
 /*
+#include <vppinfra/types.h>
+#include <stdbool.h>
+#include <stdbool.h>
  * pppd.h - PPP daemon global declarations.
  *
  * Copyright (c) 1984-2000 Carnegie Mellon University. All rights reserved.

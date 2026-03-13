@@ -627,8 +627,8 @@ vnet_pppoe_add_del_client (vnet_pppoe_add_del_client_args_t * a,
       {
         vnet_hw_interface_t *hw = vnet_get_hw_interface (vnm, c->hw_if_index);
         vnet_hw_interface_class_t *hw_class =
-          vnet_get_hw_interface_class (hw->hw_class_index);
-        if (hw_class != ethernet_hw_interface_class)
+          vnet_get_hw_interface_class (vnm, hw->hw_class_index);
+        if (hw_class->index != ethernet_hw_interface_class.index)
           {
             pool_put (pem->clients, c);
             return VNET_API_ERROR_INVALID_INTERFACE;
@@ -881,8 +881,8 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
   u32 timeout = 0;
   u8 use_peer_dns = 0;
   u8 use_peer_route = 0;
-  u32 ip4_addr = 0;
-  u32 ip4_netmask = 0;
+  //u32 ip4_addr = 0;
+  //u32 ip4_netmask = 0;
 
   while (unformat_check_input (input) != UNFORMAT_END_OF_INPUT)
     {

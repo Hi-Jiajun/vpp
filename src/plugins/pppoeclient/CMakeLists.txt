@@ -17,8 +17,6 @@ add_vpp_plugin(pppoeclient
     pppoeclient.c
     pppoeclient_api.c
 
-  CFLAGS -Wno-error -w
-
   API_FILES
     pppoeclient.api
 
