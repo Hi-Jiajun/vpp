@@ -13,6 +13,7 @@
 #include <vnet/plugin/plugin.h>
 #include <vpp/app/version.h>
 
+#include <pppox/pppd/pppd.h>
 // PPP protocol definitions
 #define PPP_PROTOCOL_IP4 0x0021
 #define PPP_PROTOCOL_IP6 0x0057
@@ -39,7 +40,6 @@ static int lcp_sprotrej(int unit, u8 *p, int len) { return 0; }
 static void lcp_close(int unit, char *reason) {}
 
 // Stub pppd globals
-static int phase[16] = {0};
 typedef struct { char *us_user; int us_userlen; char *us_passwd; int us_passwdlen; } upap_t;
 static upap_t upap[16];
 typedef struct { char *us_user; int us_userlen; char *us_passwd; int us_passwdlen; } chap_client_t;
@@ -47,7 +47,6 @@ static chap_client_t chap_client[16];
 
 // Stub protocols array
 struct protent;
-static struct protent *stub_protocols[1] = { NULL };
 
 #include <pppox/pppox.h>
 
@@ -106,7 +105,7 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   /*
    * Upcall the proper protocol input routine.
    */
-  //for (i = 0; (protp = protocols[i]) != NULL; ++i) {
+  for (i = 0; (protp = protocols[i]) != NULL; ++i) {
     if (protp->protocol == protocol && protp->enabled_flag) {
       (*protp->input)(unit, p, len);
       return 0;

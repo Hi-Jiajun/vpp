@@ -1,7 +1,4 @@
 /*
-#include <vppinfra/types.h>
-#include <stdbool.h>
-#include <stdbool.h>
  * pppd.h - PPP daemon global declarations.
  *
  * Copyright (c) 1984-2000 Carnegie Mellon University. All rights reserved.
@@ -52,6 +49,7 @@
 #ifndef __PPPD_H__
 #define __PPPD_H__
 
+#include <vppinfra/types.h>
 #include <stdio.h>		/* for FILE */
 #include <stdbool.h>            /* for bool type */
 #include <limits.h>		/* for NGROUPS_MAX */
@@ -387,6 +385,7 @@ struct protent {
 
 /* Table of pointers to supported protocols */
 struct protent;
+extern struct protent *protocols[];
 extern struct protent *stub_protocols[];
 
 /*
