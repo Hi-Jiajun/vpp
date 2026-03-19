@@ -620,7 +620,12 @@ vnet_pppoe_add_del_client (vnet_pppoe_add_del_client_args_t * a,
 #undef _
 
       // TODO: assure interface is ethernet hardware interface.
-      sw = vnet_get_sw_interface (vnm, a->sw_if_index);
+      sw = vnet_get_sw_interface_or_null (vnm, a->sw_if_index);
+      if (sw == NULL)
+        {
+          pool_put (pem->clients, c);
+          return VNET_API_ERROR_INVALID_INTERFACE;
+        }
       c->hw_if_index = sw->hw_if_index;
 
       /* Check if interface is an ethernet hardware interface */
