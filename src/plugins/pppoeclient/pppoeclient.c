@@ -17,10 +17,41 @@
 #include <vnet/plugin/plugin.h>
 #include <vpp/app/version.h>
 #include <ppp/packet.h>
+#include <pppox/pppox.h>
 #include <pppoeclient/pppoeclient.h>
 
 #include <vppinfra/hash.h>
 #include <vppinfra/bihash_template.c>
+
+extern int phase[];
+extern int auth_done[];
+
+#define PAP_WITHPEER 0x1
+#define PAP_PEER 0x2
+#define CHAP_WITHPEER 0x4
+#define CHAP_PEER 0x8
+#define EAP_WITHPEER 0x10
+#define EAP_PEER 0x20
+#define CHAP_MD5_WITHPEER 0x40
+#define CHAP_MD5_PEER 0x80
+#define CHAP_MS_WITHPEER 0x100
+#define CHAP_MS_PEER 0x200
+#define CHAP_MS2_WITHPEER 0x400
+#define CHAP_MS2_PEER 0x800
+
+#define PHASE_DEAD 0
+#define PHASE_INITIALIZE 1
+#define PHASE_SERIALCONN 2
+#define PHASE_DORMANT 3
+#define PHASE_ESTABLISH 4
+#define PHASE_AUTHENTICATE 5
+#define PHASE_CALLBACK 6
+#define PHASE_NETWORK 7
+#define PHASE_RUNNING 8
+#define PHASE_TERMINATE 9
+#define PHASE_DISCONNECT 10
+#define PHASE_HOLDOFF 11
+#define PHASE_MASTER 12
 
 pppoeclient_main_t pppoeclient_main;
 static vlib_node_registration_t pppoe_client_process_node;
@@ -534,6 +565,143 @@ static u8 * format_pppoe_client_state (u8 * s, va_list * va)
   return s;
 }
 
+static u8 *
+format_pppox_phase (u8 * s, va_list * va)
+{
+  int phase_value = va_arg (*va, int);
+  char *str = "unknown";
+
+  switch (phase_value)
+    {
+    case PHASE_DEAD:
+      str = "dead";
+      break;
+    case PHASE_INITIALIZE:
+      str = "initialize";
+      break;
+    case PHASE_SERIALCONN:
+      str = "serialconn";
+      break;
+    case PHASE_DORMANT:
+      str = "dormant";
+      break;
+    case PHASE_ESTABLISH:
+      str = "establish";
+      break;
+    case PHASE_AUTHENTICATE:
+      str = "authenticate";
+      break;
+    case PHASE_CALLBACK:
+      str = "callback";
+      break;
+    case PHASE_NETWORK:
+      str = "network";
+      break;
+    case PHASE_RUNNING:
+      str = "running";
+      break;
+    case PHASE_TERMINATE:
+      str = "terminate";
+      break;
+    case PHASE_DISCONNECT:
+      str = "disconnect";
+      break;
+    case PHASE_HOLDOFF:
+      str = "holdoff";
+      break;
+    case PHASE_MASTER:
+      str = "master";
+      break;
+    default:
+      break;
+    }
+
+  return format (s, "%s", str);
+}
+
+static u8 *
+format_pppox_auth_done (u8 * s, va_list * va)
+{
+  int auth = va_arg (*va, int);
+  int first = 1;
+
+#define _append(_bit, _name)   if (auth & (_bit))     {       s = format (s, "%s%s", first ? "" : ",", (_name));       first = 0;     }
+
+  _append (PAP_WITHPEER, "pap-withpeer");
+  _append (PAP_PEER, "pap-peer");
+  _append (CHAP_WITHPEER, "chap-withpeer");
+  _append (CHAP_PEER, "chap-peer");
+  _append (EAP_WITHPEER, "eap-withpeer");
+  _append (EAP_PEER, "eap-peer");
+  _append (CHAP_MD5_WITHPEER, "chap-md5-withpeer");
+  _append (CHAP_MD5_PEER, "chap-md5-peer");
+  _append (CHAP_MS_WITHPEER, "chap-ms-withpeer");
+  _append (CHAP_MS_PEER, "chap-ms-peer");
+  _append (CHAP_MS2_WITHPEER, "chap-ms2-withpeer");
+  _append (CHAP_MS2_PEER, "chap-ms2-peer");
+#undef _append
+
+  if (first)
+    s = format (s, "none");
+
+  return s;
+}
+
+static void
+show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
+{
+  pppoeclient_main_t *pem = &pppoeclient_main;
+  pppox_main_t *pom = &pppox_main;
+  u32 client_index = c - pem->clients;
+  pppox_virtual_interface_t *t = 0;
+  u32 unit = ~0;
+  int phase_value = PHASE_DEAD;
+  int auth_value = 0;
+
+  if (c->pppox_sw_if_index != ~0 &&
+      c->pppox_sw_if_index < vec_len (pom->virtual_interface_index_by_sw_if_index))
+    {
+      unit = pom->virtual_interface_index_by_sw_if_index[c->pppox_sw_if_index];
+      if (unit != ~0 && !pool_is_free_index (pom->virtual_interfaces, unit))
+        {
+          t = pool_elt_at_index (pom->virtual_interfaces, unit);
+          phase_value = phase[unit];
+          auth_value = auth_done[unit];
+        }
+    }
+
+  vlib_cli_output (vm, "[%u] sw-if-index %u (%U) host-uniq %u",
+                   client_index, c->sw_if_index,
+                   format_vnet_sw_if_index_name, pem->vnet_main, c->sw_if_index,
+                   c->host_uniq);
+  vlib_cli_output (vm, "    client-state %U session-id %u ac-mac %U",
+                   format_pppoe_client_state, c->state, c->session_id,
+                   format_ethernet_address, c->ac_mac_address);
+  vlib_cli_output (vm, "    ac-name %v", c->ac_name ? c->ac_name : (u8 *) "<none>");
+  if (t)
+    {
+      vlib_cli_output (vm, "    pppox-sw-if-index %u (%U) pppox-unit %u session-allocated %u",
+                       c->pppox_sw_if_index,
+                       format_vnet_sw_if_index_name, pom->vnet_main,
+                       c->pppox_sw_if_index,
+                       unit, t->pppoe_session_allocated);
+      vlib_cli_output (vm, "    phase %U auth %U",
+                       format_pppox_phase, phase_value,
+                       format_pppox_auth_done, auth_value);
+      vlib_cli_output (vm, "    ipv4 local %U peer %U",
+                       format_ip4_address, &t->our_addr,
+                       format_ip4_address, &t->his_addr);
+      vlib_cli_output (vm, "    ipv6 local %U/%u peer %U use-peer-ipv6 %u",
+                       format_ip6_address, &t->our_ipv6, c->ipv6_prefix_len,
+                       format_ip6_address, &t->his_ipv6, c->use_peer_ipv6);
+    }
+  else
+    vlib_cli_output (vm, "    pppox-sw-if-index %u pppox-unit unavailable", c->pppox_sw_if_index);
+  vlib_cli_output (vm, "    auth-user %v mtu %u mru %u timeout %u use-peer-dns %u use-peer-route %u",
+                   c->username ? c->username : (u8 *) "<unset>", c->mtu, c->mru, c->timeout,
+                   c->use_peer_dns, c->use_peer_route);
+}
+
 u8 *
 format_pppoe_client (u8 * s, va_list * args)
 {
@@ -868,6 +1036,47 @@ VLIB_CLI_COMMAND (show_pppoe_client_command, static) = {
     .path = "show pppoe client",
     .short_help = "show pppoe client",
     .function = show_pppoe_client_command_fn,
+};
+/* *INDENT-ON* */
+
+static clib_error_t *
+show_pppoe_client_detail_command_fn (vlib_main_t * vm,
+                                     unformat_input_t * input,
+                                     vlib_cli_command_t * cmd)
+{
+  pppoeclient_main_t *pem = &pppoeclient_main;
+  pppoe_client_t *t;
+
+  if (pool_elts (pem->clients) == 0)
+    {
+      vlib_cli_output (vm, "No pppoe clients configured...");
+      return 0;
+    }
+
+  pool_foreach (t, pem->clients)
+    {
+      show_pppoe_client_detail_one (vm, t);
+    }
+
+  return 0;
+}
+
+/*?
+ * Display detailed client-side PPPoE session state.
+ *
+ * @cliexpar
+ * Example of how to display PPPoE client-side session details:
+ * @cliexstart{show pppoe client detail}
+ * [0] sw-if-index 1 (TenGigabitEthernet...) host-uniq 1234
+ *     client-state PPPOE_CLIENT_SESSION session-id 4660 ac-mac aa:bb:cc:dd:ee:ff
+ *     pppox-unit 0 session-allocated 1 phase running auth pap-withpeer
+ * @cliexend
+ ?*/
+/* *INDENT-OFF* */
+VLIB_CLI_COMMAND (show_pppoe_client_detail_command, static) = {
+    .path = "show pppoe client detail",
+    .short_help = "show pppoe client detail",
+    .function = show_pppoe_client_detail_command_fn,
 };
 /* *INDENT-ON* */
 
