@@ -23,7 +23,7 @@
 #include <vppinfra/hash.h>
 #include <vppinfra/bihash_template.c>
 
-extern int phase[];
+int phase[100];     // Stub for pppd phase state
 int auth_done[100]; // Stub for pppd auth state
 
 #define PAP_WITHPEER 0x1

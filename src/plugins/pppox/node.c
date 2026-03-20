@@ -123,6 +123,24 @@ static u8 * format_pppox_tx_trace (u8 * s, va_list * args)
   return s;
 }
 
+static u32 pppoeclient_output_next_index = ~0;
+
+static_always_inline u32
+pppox_get_output_next_index (vlib_main_t *vm)
+{
+  if (PREDICT_TRUE (pppoeclient_output_next_index != ~0))
+    return pppoeclient_output_next_index;
+
+  vlib_node_t *next = vlib_get_node_by_name (vm, (u8 *) "pppoeclient-session-output");
+  if (next)
+    pppoeclient_output_next_index =
+      vlib_node_add_next (vm, pppox_output_node.index, next->index);
+  else
+    pppoeclient_output_next_index = PPPOX_OUTPUT_NEXT_DROP;
+
+  return pppoeclient_output_next_index;
+}
+
 static uword
 pppox_output (vlib_main_t * vm,
               vlib_node_runtime_t * node,
@@ -139,7 +157,7 @@ pppox_output (vlib_main_t * vm,
   from = vlib_frame_vector_args (from_frame);
   n_left_from = from_frame->n_vectors;
 
-  next_index = node->cached_next_index;
+  next_index = pppox_get_output_next_index (vm);
   stats_pppox_sw_if_index = node->runtime_data[0];
   stats_n_packets = stats_n_bytes = 0;
 
@@ -160,7 +178,7 @@ pppox_output (vlib_main_t * vm,
       u8 * byte0, * byte1;
       u16 * proto0, * proto1;
 #endif
-      next0 = next1 = PPPOX_OUTPUT_NEXT_PPPOECLIENT_SESSION_OUTPUT;
+      next0 = next1 = pppox_get_output_next_index (vm);
 
       /* Prefetch next iteration. */
       {
@@ -263,7 +281,7 @@ pppox_output (vlib_main_t * vm,
     {
       u32 bi0;
       vlib_buffer_t * b0;
-      u32 next0 = PPPOX_OUTPUT_NEXT_PPPOECLIENT_SESSION_OUTPUT;
+      u32 next0 = pppox_get_output_next_index (vm);
       u32 pppox_sw_if_index0, len0;
 #if 0
       u8 * byte0;

@@ -40,7 +40,6 @@ typedef enum
 } pppox_input_next_t;
 
 #define foreach_pppox_output_next       \
-_(PPPOECLIENT_SESSION_OUTPUT, "pppoeclient-session-output") \
 _(DROP, "error-drop")
 
 typedef enum
