@@ -668,6 +668,8 @@ pppoeclient_session_input (vlib_main_t * vm,
 
 	      // Set ppp length in order to help parsing ctrl packet (adapt oss pppd).
 
+              vnet_buffer (b0)->pppox.len = b0->current_length;
+
               next0 = PPPOECLIENT_SESSION_INPUT_NEXT_PPPOX_INPUT;
 
             }
@@ -831,6 +833,8 @@ pppoeclient_session_input (vlib_main_t * vm,
             {
 
 	      // Set ppp length in order to help parsing ctrl packet (adapt oss pppd).
+
+              vnet_buffer (b1)->pppox.len = b1->current_length;
 
               next1 = PPPOECLIENT_SESSION_INPUT_NEXT_PPPOX_INPUT;
 
@@ -1028,17 +1032,33 @@ pppoeclient_session_input (vlib_main_t * vm,
 
             }
 
+          else if (ppp_proto0 == PPP_PROTOCOL_ip6)
+
+            {
+
+              // give only ip6 packet for ip6-input.
+
+              vlib_buffer_advance(b0, sizeof (ppp_proto0));
+
+              next0 = PPPOECLIENT_SESSION_INPUT_NEXT_IP6_INPUT;
+
+            }
+
           else if ((ppp_proto0 == PPP_PROTOCOL_lcp) ||
 
                    (ppp_proto0 == PPP_PROTOCOL_pap) ||
 
 		   (ppp_proto0 == PPP_PROTOCOL_ipcp) ||
 
+		   (ppp_proto0 == PPP_PROTOCOL_ipv6cp) ||
+
 		   (ppp_proto0 == PPP_PROTOCOL_chap))
 
             {
 
 	      // Set ppp length in order to help parsing ctrl packet (adapt oss pppd).
+
+              vnet_buffer (b0)->pppox.len = b0->current_length;
 
               next0 = PPPOECLIENT_SESSION_INPUT_NEXT_PPPOX_INPUT;
 

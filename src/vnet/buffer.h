@@ -392,7 +392,16 @@ typedef struct
       u32 required_thread_index;
     } snat;
 
-    u32 unused[6];
+    union
+    {
+      /* PPPOX */
+      struct
+      {
+        u16 len;
+      } pppox;
+
+      u32 unused[6];
+    };
   };
 } vnet_buffer_opaque_t;
 

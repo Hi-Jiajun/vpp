@@ -50,7 +50,7 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   int i = 0;
   u16 protocol = 0;
   struct protent *protp;
-  int len = b->current_length;
+  int len = vnet_buffer (b)->pppox.len;
   // Use virtual interface context index as pppd unit number.
   u8 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
 
