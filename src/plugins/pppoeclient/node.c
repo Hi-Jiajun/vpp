@@ -110,6 +110,7 @@ pppoeclient_discovery_input (vlib_main_t * vm,
 
 {
 
+
   u32 n_left_from, next_index, * from, * to_next;
 
   u32 discovery_pkts = 0;
@@ -173,6 +174,7 @@ pppoeclient_discovery_input (vlib_main_t * vm,
 	  b0 = vlib_get_buffer (vm, bi0);
 
 	  error0 = 0;
+
 
 
 

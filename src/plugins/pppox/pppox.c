@@ -66,8 +66,6 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   // Our pppox frame will only have a 16B protocol field.
   len -= 2;
 
-  clib_warning ("CONSUME_PPPOX_CTRL: sw_if_index=%u unit=%u protocol=0x%04x phase=%d lcp_state=%d len=%d",
-                sw_if_index, unit, protocol, phase[unit], lcp_fsm[unit].state, len);
 
   /*
    * Toss all non-LCP packets unless LCP is OPEN.
@@ -406,8 +404,6 @@ pppox_lower_up(u32 sw_if_index)
   pppox_main_t * pom = &pppox_main;
   u32 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
 
-  clib_warning ("PPPOX_LOWER_UP: sw_if_index=%u unit=%u phase=%d lcp_state=%d",
-                sw_if_index, unit, phase[unit], lcp_fsm[unit].state);
   if (unit < vec_len (pom->virtual_interfaces)
       && !pool_is_free_index (pom->virtual_interfaces, unit))
     {
