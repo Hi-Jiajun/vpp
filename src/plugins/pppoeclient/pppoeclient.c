@@ -1015,7 +1015,7 @@ show_pppoe_client_command_fn (vlib_main_t * vm,
 
   pool_foreach (t, pem->clients)
     {
-      vlib_cli_output (vm, "%U",format_pppoe_client, t);
+      show_pppoe_client_detail_one (vm, t);
     };
 
   return 0;
@@ -1023,10 +1023,10 @@ show_pppoe_client_command_fn (vlib_main_t * vm,
 /* *INDENT-ON* */
 
 /*?
- * Display all the PPPPOE client entries.
+ * Display detailed PPPPOE client entries.
  *
  * @cliexpar
- * Example of how to display the PPPPOE client entries:
+ * Example of how to display detailed PPPPOE client entries:
  * @cliexstart{show pppoe client}
  * [0] host_uniq sw-if-index 0 status ???
  * @cliexend
