@@ -36,6 +36,37 @@ extern void pppd_calltimeout (void);
 
 pppox_main_t pppox_main;
 
+static pppox_virtual_interface_t *
+pppox_get_virtual_interface_by_unit (pppox_main_t *pom, u32 unit)
+{
+  if (unit == ~0 || unit >= vec_len (pom->virtual_interfaces) ||
+      pool_is_free_index (pom->virtual_interfaces, unit))
+    return 0;
+
+  return pool_elt_at_index (pom->virtual_interfaces, unit);
+}
+
+static pppox_virtual_interface_t *
+pppox_get_virtual_interface_by_sw_if_index (pppox_main_t *pom, u32 sw_if_index,
+                                            u32 *unit)
+{
+  pppox_virtual_interface_t *t;
+  u32 pool_index;
+
+  if (unit)
+    *unit = ~0;
+
+  if (sw_if_index >= vec_len (pom->virtual_interface_index_by_sw_if_index))
+    return 0;
+
+  pool_index = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
+  t = pppox_get_virtual_interface_by_unit (pom, pool_index);
+  if (t && unit)
+    *unit = pool_index;
+
+  return t;
+}
+
 // This function is adapted to oss pppd main.c:get_input.
 // refer to pppoeclient_session_input to see what packets can
 // be delivered here, if new protocol enabled, should modify
@@ -52,13 +83,12 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   struct protent *protp;
   int len = vnet_buffer (b)->pppox.len;
   // Use virtual interface context index as pppd unit number.
-  u8 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
+  u32 unit = ~0;
 
   // If instance is deleted, simple return.
-  t = pool_elt_at_index (pom->virtual_interfaces, unit);
-  if (t == NULL) {
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, sw_if_index, &unit);
+  if (t == 0)
     return 1;
-  }
 
   p = vlib_buffer_get_current (b);
 
@@ -366,11 +396,12 @@ __clib_export pppox_free_interface(u32 hw_if_index)
   vnet_main_t *vnm = pom->vnet_main;
   vnet_hw_interface_t *hi;
   pppox_virtual_interface_t *t = 0;
-  int unit;
+  u32 unit = ~0;
   hi = vnet_get_hw_interface (vnm, hw_if_index);
 
-  unit = pom->virtual_interface_index_by_sw_if_index[hi->sw_if_index];
-  t = pool_elt_at_index (pom->virtual_interfaces, unit);
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, hi->sw_if_index, &unit);
+  if (t == 0)
+    return;
 
   // clean allocated address.
   // lcp_close will trigger the ip freeed if we have allocated one.
@@ -422,14 +453,13 @@ __clib_export void
 pppox_lower_up(u32 sw_if_index)
 {
   pppox_main_t * pom = &pppox_main;
-  u32 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
+  pppox_virtual_interface_t *t = 0;
+  u32 unit = ~0;
 
-  if (unit < vec_len (pom->virtual_interfaces)
-      && !pool_is_free_index (pom->virtual_interfaces, unit))
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, sw_if_index, &unit);
+  if (t)
     {
       struct protent *protp;
-      pppox_virtual_interface_t *t =
-        pool_elt_at_index (pom->virtual_interfaces, unit);
 
       t->pppoe_session_allocated = 1;
 
@@ -451,11 +481,12 @@ __clib_export void
 pppox_lower_down(u32 sw_if_index)
 {
   pppox_main_t * pom = &pppox_main;
-  u32 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
-  if (unit < vec_len (pom->virtual_interfaces)
-      && !pool_is_free_index (pom->virtual_interfaces, unit))
+  pppox_virtual_interface_t *t = 0;
+  u32 unit = ~0;
+
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, sw_if_index, &unit);
+  if (t)
     {
-      pppox_virtual_interface_t *t = pool_elt_at_index (pom->virtual_interfaces, unit);
       t->pppoe_session_allocated = 0;
       lcp_lowerdown (unit);
     }
@@ -553,11 +584,15 @@ void output (int unit, u8 *p, int len)
   pppox_virtual_interface_t *t = 0;
   vnet_hw_interface_t *hw;
 
-  t = pool_elt_at_index (pom->virtual_interfaces, unit);
-  if (t == NULL) {
-    // PPPoE client might be deleted, simple return.
+  if (unit < 0)
     return;
-  }
+
+  t = pppox_get_virtual_interface_by_unit (pom, (u32) unit);
+  if (t == 0)
+    {
+      // PPPoE client might be deleted, simple return.
+      return;
+    }
   hw = vnet_get_hw_interface (vnm, t->hw_if_index);
   // TODO: should we should use packet template to prevent allocate buffer????
   if (vlib_buffer_alloc (vm, &bi, 1) != 1) {
@@ -603,7 +638,12 @@ ifaddr_callback (void *arg)
   pppox_virtual_interface_t * t;
   ifaddr_arg_t *a = arg;
 
-  t = pool_elt_at_index (pom->virtual_interfaces, a->unit);
+  if (a->unit < 0)
+    return 0;
+
+  t = pppox_get_virtual_interface_by_unit (pom, a->unit);
+  if (t == 0)
+    return 0;
 
   if (a->is_add)
     {
@@ -693,11 +733,12 @@ cleanup_callback (void *arg)
   pppox_virtual_interface_t *t;
   cleanup_arg_t *a = arg;
 
-  if (a->unit < 0 || a->unit >= vec_len (pom->virtual_interfaces) ||
-      pool_is_free_index (pom->virtual_interfaces, a->unit))
+  if (a->unit < 0)
     return 0;
 
-  t = pool_elt_at_index (pom->virtual_interfaces, a->unit);
+  t = pppox_get_virtual_interface_by_unit (pom, a->unit);
+  if (t == 0)
+    return 0;
   // notify pppoe to close session.
   static void (*pppoe_client_close_session_func) (u32 client_index) = 0;
   if (pppoe_client_close_session_func == 0)
