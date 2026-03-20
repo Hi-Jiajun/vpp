@@ -159,3 +159,35 @@ struct protent chap_protent = {
     chap_check_options,
     chap_demand_conf
 };
+
+
+static void ipv6cp_init(int unit) {}
+static void ipv6cp_input(int unit, u_char *pkt, int len) {}
+static void ipv6cp_protrej(int unit) {}
+static void ipv6cp_lowerup(int unit) {}
+static void ipv6cp_lowerdown(int unit) {}
+static void ipv6cp_open(int unit) {}
+static void ipv6cp_close(int unit, char *reason) {}
+static int ipv6cp_printpkt(u_char *pkt, int len, printer_func printer, void *arg) { return 0; }
+static void ipv6cp_datainput(int unit, u_char *pkt, int len) {}
+static void ipv6cp_check_options(void) {}
+static int ipv6cp_demand_conf(int unit) { return 0; }
+
+struct protent ipv6cp_protent = {
+    0x8057,
+    ipv6cp_init,
+    ipv6cp_input,
+    ipv6cp_protrej,
+    ipv6cp_lowerup,
+    ipv6cp_lowerdown,
+    ipv6cp_open,
+    ipv6cp_close,
+    ipv6cp_printpkt,
+    ipv6cp_datainput,
+    1,
+    "ipv6cp",
+    "IPV6CP",
+    0,
+    ipv6cp_check_options,
+    ipv6cp_demand_conf
+};

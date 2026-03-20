@@ -18,6 +18,7 @@ add_vpp_plugin(pppox
     pppox.c
     pppox_api.c
     pppd/sys-vpp.c
+    pppd/ppp_stubs.c
 
   API_FILES
     pppox.api
