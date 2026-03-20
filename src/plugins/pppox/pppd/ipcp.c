@@ -46,33 +46,20 @@
  * TODO:
  */
 
-#include <vppinfra/clib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <netdb.h>
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include "pppd.h"
+#include "fsm.h"
+#include "ipcp.h"
+#include "pathnames.h"
 
 //static const char rcsid[] = RCSID;
 
@@ -222,13 +209,14 @@ u_int32_t ipaddr;
  * ipcp_init - Initialize IPCP.
  */
 static void
-ipcp_init (int unit)
+ipcp_init(unit)
+    int unit;
 {
     fsm *f = &ipcp_fsm[unit];
     ipcp_options *wo = &ipcp_wantoptions[unit];
     ipcp_options *ao = &ipcp_allowoptions[unit];
 
-    f->CLIB_UNUSED (unit);
+    f->unit = unit;
     f->protocol = PPP_IPCP;
     f->callbacks = &ipcp_callbacks;
     fsm_init(&ipcp_fsm[unit]);
@@ -276,7 +264,8 @@ ipcp_init (int unit)
  * ipcp_open - IPCP is allowed to come up.
  */
 static void
-ipcp_open (int unit)
+ipcp_open(unit)
+    int unit;
 {
     fsm_open(&ipcp_fsm[unit]);
     ipcp_is_open[unit] = 1;
@@ -299,7 +288,8 @@ ipcp_close(unit, reason)
  * ipcp_lowerup - The lower layer is up.
  */
 static void
-ipcp_lowerup (int unit)
+ipcp_lowerup(unit)
+    int unit;
 {
     fsm_lowerup(&ipcp_fsm[unit]);
 }
@@ -309,7 +299,8 @@ ipcp_lowerup (int unit)
  * ipcp_lowerdown - The lower layer is down.
  */
 static void
-ipcp_lowerdown (int unit)
+ipcp_lowerdown(unit)
+    int unit;
 {
     fsm_lowerdown(&ipcp_fsm[unit]);
 }
@@ -334,7 +325,8 @@ ipcp_input(unit, p, len)
  * Pretend the lower layer went down, so we shut up.
  */
 static void
-ipcp_protrej (int unit)
+ipcp_protrej(unit)
+    int unit;
 {
     fsm_lowerdown(&ipcp_fsm[unit]);
 }

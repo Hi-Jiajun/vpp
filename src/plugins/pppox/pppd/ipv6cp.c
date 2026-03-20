@@ -573,14 +573,14 @@ ipv6cp_close(unit, reason)
 /*
  * ipv6cp_printpkt - Print IPv6CP packet
  */
-static u_char *
+static int
 ipv6cp_printpkt(p, len, printer, arg)
     u_char *p;
     int len;
-    void (*printer)();
+    printer_func printer;
     void *arg;
 {
-    return p;
+    return 0;
 }
 
 

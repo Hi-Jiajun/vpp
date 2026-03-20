@@ -30,25 +30,17 @@
 
 #define RCSID	"$Id: ccp.c,v 1.50 2005/06/26 19:34:41 carlsonj Exp $"
 
-#include <vppinfra/clib.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <vppinfra/clib.h>
-
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include "pppd.h"
+#include "fsm.h"
+#include "ccp.h"
+#include "ppp-comp.h"
 
 #ifdef MPPE
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include "chap_ms.h"	/* mppe_xxxx_key, mppe_keys_set */
+#include "lcp.h"	/* lcp_close(), lcp_fsm */
 #endif
 
 //static const char rcsid[] = RCSID;
@@ -159,11 +151,12 @@ static int all_rejected[NUM_PPP];	/* we rejected all peer's options */
  * ccp_init - initialize CCP.
  */
 static void
-ccp_init (int unit)
+ccp_init(unit)
+    int unit;
 {
     fsm *f = &ccp_fsm[unit];
 
-    f->CLIB_UNUSED (unit);
+    f->unit = unit;
     f->protocol = PPP_CCP;
     f->callbacks = &ccp_callbacks;
     fsm_init(f);
@@ -194,7 +187,8 @@ ccp_init (int unit)
  * ccp_open - CCP is allowed to come up.
  */
 static void
-ccp_open (int unit)
+ccp_open(unit)
+    int unit;
 {
     fsm *f = &ccp_fsm[unit];
 
@@ -228,7 +222,8 @@ ccp_close(unit, reason)
  * ccp_lowerup - we may now transmit CCP packets.
  */
 static void
-ccp_lowerup (int unit)
+ccp_lowerup(unit)
+    int unit;
 {
     fsm_lowerup(&ccp_fsm[unit]);
 }
@@ -237,7 +232,8 @@ ccp_lowerup (int unit)
  * ccp_lowerdown - we may not transmit CCP packets.
  */
 static void
-ccp_lowerdown (int unit)
+ccp_lowerdown(unit)
+    int unit;
 {
     fsm_lowerdown(&ccp_fsm[unit]);
 }
@@ -315,7 +311,8 @@ ccp_extcode(f, code, id, p, len)
  * ccp_protrej - peer doesn't talk CCP.
  */
 static void
-ccp_protrej (int unit)
+ccp_protrej(unit)
+    int unit;
 {
     ccp_flags_set(unit, 0, 0);
     fsm_lowerdown(&ccp_fsm[unit]);

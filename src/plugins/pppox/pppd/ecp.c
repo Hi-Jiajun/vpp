@@ -61,15 +61,11 @@
 
 //static const char rcsid[] = RCSID;
 
-#include <vppinfra/clib.h>
+#include <string.h>
 
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include "pppd.h"
+#include "fsm.h"
+#include "ecp.h"
 
 static option_t ecp_option_list[] = {
     { "noecp", o_bool, &ecp_protent.enabled_flag,
@@ -147,11 +143,12 @@ static fsm_callbacks ecp_callbacks = {
  * ecp_init - initialize ECP.
  */
 static void
-ecp_init (int unit)
+ecp_init(unit)
+    int unit;
 {
     fsm *f = &ecp_fsm[unit];
 
-    f->CLIB_UNUSED (unit);
+    f->unit = unit;
     f->protocol = PPP_ECP;
     f->callbacks = &ecp_callbacks;
     fsm_init(f);

@@ -46,23 +46,15 @@
  * TODO:
  */
 
-#include <vppinfra/clib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include "pppd.h"
+#include "fsm.h"
+#include "lcp.h"
+#include "chap-new.h"
+#include "magic.h"
 
 //static const char rcsid[] = RCSID;
 
@@ -201,13 +193,14 @@ int lcp_loopbackfail = DEFLOOPBACKFAIL;
  * lcp_init - Initialize LCP.
  */
 static void
-lcp_init (int unit)
+lcp_init(unit)
+    int unit;
 {
     fsm *f = &lcp_fsm[unit];
     lcp_options *wo = &lcp_wantoptions[unit];
     lcp_options *ao = &lcp_allowoptions[unit];
 
-    f->CLIB_UNUSED (unit);
+    f->unit = unit;
     f->protocol = PPP_LCP;
     f->callbacks = &lcp_callbacks;
 
@@ -247,7 +240,8 @@ lcp_init (int unit)
  * lcp_open - LCP is allowed to come up.
  */
 void
-lcp_open (int unit)
+lcp_open(unit)
+    int unit;
 {
     fsm *f = &lcp_fsm[unit];
     lcp_options *wo = &lcp_wantoptions[unit];
@@ -300,7 +294,8 @@ lcp_close(unit, reason)
  * lcp_lowerup - The lower layer is up.
  */
 void
-lcp_lowerup (int unit)
+lcp_lowerup(unit)
+    int unit;
 {
     lcp_options *wo = &lcp_wantoptions[unit];
     fsm *f = &lcp_fsm[unit];
@@ -328,7 +323,8 @@ lcp_lowerup (int unit)
  * lcp_lowerdown - The lower layer is down.
  */
 void
-lcp_lowerdown (int unit)
+lcp_lowerdown(unit)
+    int unit;
 {
     fsm *f = &lcp_fsm[unit];
 
@@ -477,7 +473,8 @@ lcp_rprotrej(f, inp, len)
  */
 /*ARGSUSED*/
 static void
-lcp_protrej (int unit)
+lcp_protrej(unit)
+    int unit;
 {
     /*
      * Can't reject LCP!

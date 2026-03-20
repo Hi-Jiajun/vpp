@@ -8,7 +8,6 @@
 #include "pppd.h"
 #include "fsm.h"
 #include "ipcp.h"
-#include "ipv6cp.h"
 #include "upap.h"
 #include "chap-new.h"
 #include "lcp.h"
@@ -42,7 +41,6 @@ struct protent *protocols[] = {
     &lcp_protent,
     &pap_protent,
     &ipcp_protent,
-    &ipv6cp_protent,
     &chap_protent,
     NULL
 };
@@ -55,8 +53,6 @@ char hostname[] = "oss-pppd-for-vpp";
 u_char outpacket_buf[PPP_MRU+PPP_HDRLEN]; /* buffer for outgoing packet */
 int	phase[NUM_PPP]; /* Current state of link - see values below */
 int	redirect_stderr;/* Connector's stderr should go to file */
-char	peer_authname[] = "ppp-server";/* Authenticated name of peer */
-int	auth_done[NUM_PPP]; /* Methods actually used for auth */
 int	privileged;	/* We were run by real-uid root */
 int	need_holdoff;	/* Need holdoff period after link terminates */
 char	**script_env;	/* Environment variables for scripts */
@@ -73,7 +69,6 @@ int	do_calblack;	/* set if we want to do callback next */
 int	doing_callback;	/* set if this is a callback */
 int	error_count;	/* # of times error() has been called */
 char	ppp_devnam[MAXPATHLEN];
-char     remote_number[MAXNAMELEN]; /* Remote telephone number, if avail. */
 int      ppp_session_number; /* Session number (eg PPPoE session) */
 int	fd_devnull;	/* fd open to /dev/null */
 // ZDY: default listen time is zero means we will send conf request

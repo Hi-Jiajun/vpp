@@ -46,6 +46,8 @@
 /*
  * Options.
  */
+#include <vppinfra/clib.h>
+#include <stdbool.h>
 #define CI_IFACEID	1	/* Interface Identifier */
 #define CI_IP6COMP	2	/* IPv6 Compression Protocol */
 

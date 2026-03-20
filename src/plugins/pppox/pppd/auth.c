@@ -70,75 +70,46 @@
 
 #define RCSID	"$Id: auth.c,v 1.117 2008/07/01 12:27:56 paulus Exp $"
 
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pwd.h>
+#include <grp.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <utmp.h>
+#include <fcntl.h>
 #if defined(_PATH_LASTLOG) && defined(__linux__)
-#include <vppinfra/clib.h>
-
+#include <lastlog.h>
 #endif
 
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 
 #ifdef HAS_SHADOW
-#include <vppinfra/clib.h>
-
+#include <shadow.h>
 #ifndef PW_PPP
 #define PW_PPP PW_LOGIN
 #endif
 #endif
-#include <vppinfra/clib.h>
+#include <time.h>
 
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
-#include <vppinfra/clib.h>
-
+#include "pppd.h"
+#include "fsm.h"
+#include "lcp.h"
+#include "ccp.h"
+#include "ecp.h"
+#include "ipcp.h"
+#include "upap.h"
+#include "chap-new.h"
+#include "eap.h"
+#include "pathnames.h"
 
 //static const char rcsid[] = RCSID;
 
@@ -241,21 +212,23 @@ static auth_context auth_contexts[NUM_PPP];
 void
 init_auth_context(int unit)
 {
-  auth_contexts[unit].CLIB_UNUSED (unit);
+  auth_contexts[unit].unit = unit;
 }
 
 /*
  * An Open on LCP has requested a change from Dead to Establish phase.
  */
 void
-link_required (int unit)
+link_required(unit)
+    int unit;
 {
 }
 
 /*
  * Bring the link up to the point of being able to do ppp.
  */
-void start_link (int unit)
+void start_link(unit)
+    int unit;
 {
     // ZDY: we make lower up firstly, so we can directly shift
     // to establish.
@@ -270,7 +243,8 @@ void start_link (int unit)
  * physical layer down.
  */
 void
-link_terminated (int unit)
+link_terminated(unit)
+    int unit;
 {
     if (phase[unit] == PHASE_DEAD || phase[unit] == PHASE_MASTER)
 	return;
@@ -295,7 +269,8 @@ link_terminated (int unit)
  * LCP has gone down; it will either die or try to re-establish.
  */
 void
-link_down (int unit)
+link_down(unit)
+    int unit;
 {
     if (!doing_multilink) {
 	upper_layers_down(unit);
@@ -329,7 +304,8 @@ void upper_layers_down(int unit)
  * Proceed to the Dead, Authenticate or Network phase as appropriate.
  */
 void
-link_established (int unit)
+link_established(unit)
+    int unit;
 {
     int auth;
     lcp_options *go = &lcp_gotoptions[unit];
@@ -381,7 +357,8 @@ link_established (int unit)
  * Proceed to the network phase.
  */
 static void
-network_phase (int unit)
+network_phase(unit)
+    int unit;
 {
     lcp_options *go = &lcp_gotoptions[unit];
 
@@ -411,7 +388,8 @@ network_phase (int unit)
 }
 
 void
-start_networks (int unit)
+start_networks(unit)
+    int unit;
 {
     int i;
     struct protent *protp;
@@ -451,7 +429,8 @@ start_networks (int unit)
 }
 
 void
-continue_networks (int unit)
+continue_networks(unit)
+    int unit;
 {
     int i;
     struct protent *protp;
@@ -676,7 +655,8 @@ np_finished(unit, proto)
  * to use for authenticating ourselves and/or the peer.
  */
 void
-auth_reset (int unit)
+auth_reset(unit)
+    int unit;
 {
   //lcp_options *go = &lcp_gotoptions[unit];
     lcp_options *ao = &lcp_allowoptions[unit];
