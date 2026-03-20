@@ -542,16 +542,17 @@ int consume_pppoe_discovery_pkt (u32 bi, vlib_buffer_t * b,
       break;
 
     case PPPOE_CLIENT_SESSION:
-      if (pppoe->code == PPPOE_PADT)
-	{
-	// notify ppp the lower is down, then it will try to reconnect.
-	static void (*pppox_lower_down_func) (u32) = 0;
-	if (pppox_lower_down_func ==0 )
-	  {
-	    pppox_lower_down_func = vlib_get_plugin_symbol("pppox_plugin.so", "pppox_lower_down");
-	  }
-	(*pppox_lower_down_func) (c->pppox_sw_if_index);
-	}
+      if (pppoe->code != PPPOE_PADT)
+        {
+          break;
+        }
+      // notify ppp the lower is down, then it will try to reconnect.
+      static void (*pppox_lower_down_func) (u32) = 0;
+      if (pppox_lower_down_func ==0 )
+        {
+          pppox_lower_down_func = vlib_get_plugin_symbol("pppox_plugin.so", "pppox_lower_down");
+        }
+      (*pppox_lower_down_func) (c->pppox_sw_if_index);
       // delete from session table and clear session_id.
       pppoeclient_delete_session_1 (&pem->session_table, c->session_id);
       c->session_id = 0;
