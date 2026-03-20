@@ -776,7 +776,13 @@ void
 pppoe_client_close_session (u32 client_index)
 {
   pppoeclient_main_t *pem = &pppoeclient_main;
-  pppoe_client_t * c;
+  vlib_main_t *vm = pem->vlib_main;
+  pppox_main_t *pom = get_pppox_main ();
+  pppoe_client_t *c;
+  u32 unit = ~0;
+
+  if (pool_is_free_index (pem->clients, client_index))
+    return;
 
   c = pool_elt_at_index (pem->clients, client_index);
 
@@ -785,8 +791,27 @@ pppoe_client_close_session (u32 client_index)
   if (c->session_id)
     {
       send_pppoe_pkt (pem, c, PPPOE_PADT, c->session_id, 0 /* is_broadcast */);
+      pppoeclient_delete_session_1 (&pem->session_table, c->session_id);
       c->session_id = 0;
     }
+
+  if (pom && c->pppox_sw_if_index != ~0 &&
+      c->pppox_sw_if_index < vec_len (pom->virtual_interface_index_by_sw_if_index))
+    {
+      unit = pom->virtual_interface_index_by_sw_if_index[c->pppox_sw_if_index];
+      if (unit != ~0 && !pool_is_free_index (pom->virtual_interfaces, unit))
+        {
+          pppox_virtual_interface_t *t =
+            pool_elt_at_index (pom->virtual_interfaces, unit);
+          t->pppoe_session_allocated = 0;
+        }
+    }
+
+  c->next_transmit = 0;
+  c->retry_count = 0;
+  c->state = PPPOE_CLIENT_DISCOVERY;
+  vlib_process_signal_event (vm, pppoe_client_process_node.index,
+                             EVENT_PPPOE_CLIENT_WAKEUP, client_index);
 
   return;
 }

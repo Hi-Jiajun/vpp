@@ -110,11 +110,29 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
 /*
  * restart_dead_client - restart dead pppoe client to reconnect.
  */
-static void *
-pppox_restart_dead_client()
+static void
+pppox_restart_dead_client (void)
 {
-  // Stub - return NULL to avoid crash
-  return NULL;
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *vif;
+  static void (*pppoe_client_close_session_func) (u32 client_index) = 0;
+
+  if (pppoe_client_close_session_func == 0)
+    {
+      pppoe_client_close_session_func =
+        vlib_get_plugin_symbol ("pppoeclient_plugin.so",
+                                "pppoe_client_close_session");
+    }
+  if (pppoe_client_close_session_func == 0)
+    return;
+
+  pool_foreach (vif, pom->virtual_interfaces)
+    {
+      u32 unit = vif - pom->virtual_interfaces;
+
+      if (phase[unit] == PHASE_DEAD && vif->pppoe_session_allocated)
+        (*pppoe_client_close_session_func) (vif->pppoe_client_index);
+    }
 }
 
 static uword
@@ -671,18 +689,26 @@ typedef struct
 static void *
 cleanup_callback (void *arg)
 {
-  pppox_main_t * pom = &pppox_main;
-  pppox_virtual_interface_t * t;
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
   cleanup_arg_t *a = arg;
+
+  if (a->unit < 0 || a->unit >= vec_len (pom->virtual_interfaces) ||
+      pool_is_free_index (pom->virtual_interfaces, a->unit))
+    return 0;
 
   t = pool_elt_at_index (pom->virtual_interfaces, a->unit);
   // notify pppoe to close session.
   static void (*pppoe_client_close_session_func) (u32 client_index) = 0;
-  if (pppoe_client_close_session_func ==0 ) {
-    pppoe_client_close_session_func = vlib_get_plugin_symbol("pppoeclient_plugin.so", "pppoe_client_close_session");
-  }
-  (*pppoe_client_close_session_func) (t->pppoe_client_index);  
-  
+  if (pppoe_client_close_session_func == 0)
+    {
+      pppoe_client_close_session_func =
+        vlib_get_plugin_symbol ("pppoeclient_plugin.so",
+                                "pppoe_client_close_session");
+    }
+  if (pppoe_client_close_session_func)
+    (*pppoe_client_close_session_func) (t->pppoe_client_index);
+
   return 0;
 }
 
