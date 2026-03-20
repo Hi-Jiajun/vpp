@@ -14,39 +14,20 @@
 #include <vpp/app/version.h>
 
 #include <pppox/pppd/pppd.h>
-// PPP protocol definitions
+#include <pppox/pppd/fsm.h>
+#include <pppox/pppd/lcp.h>
+#include <pppox/pppd/upap.h>
+#include <pppox/pppd/chap-new.h>
+
 #define PPP_PROTOCOL_IP4 0x0021
 #define PPP_PROTOCOL_IP6 0x0057
 #define PPP_PROTOCOL_IPX 0x002B
 #define PPP_PROTOCOL_VJ_COMP 0x002D
 #define PPP_PROTOCOL_VJ_UCOMP 0x002F
 
-// Stub pppd structures and functions
-#define PPP_LCP 0xc021
-#define PPP_PAP 0xc023
-#define PPP_CHAP 0xc223
-#define PPP_HDRLEN 4
-#define OPENED 4
-#define PHASE_DEAD 0
-#define PHASE_AUTHENTICATE 3
-
-// GETSHORT macro
 #define GETSHORT(s, p) (s) = ((u16)((p)[0] << 8) | (p)[1]); (p) += 2
 
-typedef struct { int state; } fsm_t;
-static fsm_t lcp_fsm[16];
-static int lcp_sprotrej(int unit, u8 *p, int len) { return 0; }
-#define pppd_calltimeout() 
-static void lcp_close(int unit, char *reason) {}
-
-// Stub pppd globals
-typedef struct { char *us_user; int us_userlen; char *us_passwd; int us_passwdlen; } upap_t;
-static upap_t upap[16];
-typedef struct { char *us_user; int us_userlen; char *us_passwd; int us_passwdlen; } chap_client_t;
-static chap_client_t chap_client[16];
-
-// Stub protocols array
-struct protent;
+extern void pppd_calltimeout (void);
 
 #include <pppox/pppox.h>
 
@@ -419,25 +400,30 @@ __clib_export pppox_free_interface(u32 hw_if_index)
 __clib_export void
 pppox_lower_up(u32 sw_if_index)
 {
-  // Stub - just mark session as allocated
   pppox_main_t * pom = &pppox_main;
   u32 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
-  if (unit < vec_len(pom->virtual_interfaces)) {
-    pppox_virtual_interface_t *t = pool_elt_at_index(pom->virtual_interfaces, unit);
-    t->pppoe_session_allocated = 1;
-  }
+  if (unit < vec_len (pom->virtual_interfaces)
+      && !pool_is_free_index (pom->virtual_interfaces, unit))
+    {
+      pppox_virtual_interface_t *t = pool_elt_at_index (pom->virtual_interfaces, unit);
+      t->pppoe_session_allocated = 1;
+      start_link (unit);
+      lcp_open (unit);
+    }
 }
 
 __clib_export void
 pppox_lower_down(u32 sw_if_index)
 {
-  // Stub - just mark session as not allocated
   pppox_main_t * pom = &pppox_main;
   u32 unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
-  if (unit < vec_len(pom->virtual_interfaces)) {
-    pppox_virtual_interface_t *t = pool_elt_at_index(pom->virtual_interfaces, unit);
-    t->pppoe_session_allocated = 0;
-  }
+  if (unit < vec_len (pom->virtual_interfaces)
+      && !pool_is_free_index (pom->virtual_interfaces, unit))
+    {
+      pppox_virtual_interface_t *t = pool_elt_at_index (pom->virtual_interfaces, unit);
+      t->pppoe_session_allocated = 0;
+      lcp_lowerdown (unit);
+    }
 }
 
 int

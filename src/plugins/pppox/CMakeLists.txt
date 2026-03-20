@@ -17,8 +17,20 @@ add_vpp_plugin(pppox
     node.c
     pppox.c
     pppox_api.c
+    pppd/auth.c
+    pppd/ccp.c
+    pppd/chap-md5.c
+    pppd/chap-new.c
+    pppd/ecp.c
+    pppd/fsm.c
+    pppd/ipcp.c
+    pppd/lcp.c
+    pppd/magic.c
+    pppd/md5.c
+    pppd/options.c
     pppd/sys-vpp.c
-    pppd/ppp_stubs.c
+    pppd/upap.c
+    pppd/utils.c
 
   API_FILES
     pppox.api
