@@ -66,43 +66,45 @@ consume_pppox_ctrl_pkt (u32 bi, vlib_buffer_t * b)
   // Our pppox frame will only have a 16B protocol field.
   len -= 2;
 
+  clib_warning ("PPPOX_CTRL protocol=0x%04x unit=%u phase=%d lcp_state=%d",
+                protocol, unit, phase[unit], lcp_fsm[unit].state);
 
-  /*
-   * Toss all non-LCP packets unless LCP is OPEN.
-   */
   if (protocol != PPP_LCP && lcp_fsm[unit].state != OPENED) {
+    clib_warning ("PPPOX_CTRL reject proto=0x%04x phase=%d lcp=%d",
+                  protocol, phase[unit], lcp_fsm[unit].state);
     return 1;
   }
 
-  /*
-   * Until we get past the authentication phase, toss all packets
-   * except LCP authentication packets.
-   */
-  // ZDY: we only support PAP/CHAP HERE.
   if (phase[unit] <= PHASE_AUTHENTICATE
       && !(protocol == PPP_LCP || protocol == PPP_PAP || protocol == PPP_CHAP)) {
+    clib_warning ("PPPOX_CTRL reject proto=0x%04x phase=%d lcp=%d",
+                  protocol, phase[unit], lcp_fsm[unit].state);
     return 1;
   }
 
-  /*
-   * Upcall the proper protocol input routine.
-   */
   for (i = 0; (protp = protocols[i]) != NULL; ++i) {
     if (protp->protocol == protocol && protp->enabled_flag) {
+      clib_warning ("PPPOX_CTRL dispatch proto=0x%04x", protocol);
       (*protp->input)(unit, p, len);
+      clib_warning ("PPPOX_CTRL dispatch proto=0x%04x", protocol);
       return 0;
     }
     if (protocol == (protp->protocol & ~0x8000) && protp->enabled_flag
         && protp->datainput != NULL) {
+      clib_warning ("PPPOX_CTRL dispatch proto=0x%04x", protocol);
       (*protp->datainput)(unit, p, len);
+      clib_warning ("PPPOX_CTRL dispatch proto=0x%04x", protocol);
       return 0;
     }
   }
 
+  clib_warning ("PPPOX_CTRL reject proto=0x%04x phase=%d lcp=%d",
+                protocol, phase[unit], lcp_fsm[unit].state);
   lcp_sprotrej(unit, p - PPP_HDRLEN, len + PPP_HDRLEN);
 
   return 1;
 }
+
 
 
 /*

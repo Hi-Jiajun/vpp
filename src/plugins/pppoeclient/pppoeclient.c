@@ -24,7 +24,7 @@
 #include <vppinfra/bihash_template.c>
 
 extern int phase[];
-extern int auth_done[];
+int auth_done[100]; // Stub for pppd auth state
 
 #define PAP_WITHPEER 0x1
 #define PAP_PEER 0x2
@@ -55,6 +55,16 @@ extern int auth_done[];
 
 pppoeclient_main_t pppoeclient_main;
 static vlib_node_registration_t pppoe_client_process_node;
+static pppox_main_t *pppox_main_p = 0;
+
+static pppox_main_t *
+get_pppox_main (void)
+{
+  if (pppox_main_p == 0)
+    pppox_main_p = vlib_get_plugin_symbol ("pppox_plugin.so", "pppox_main");
+
+  return pppox_main_p;
+}
 
 static void
 send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
@@ -679,14 +689,14 @@ static void
 show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
 {
   pppoeclient_main_t *pem = &pppoeclient_main;
-  pppox_main_t *pom = &pppox_main;
+  pppox_main_t *pom = get_pppox_main ();
   u32 client_index = c - pem->clients;
   pppox_virtual_interface_t *t = 0;
   u32 unit = ~0;
   int phase_value = PHASE_DEAD;
   int auth_value = 0;
 
-  if (c->pppox_sw_if_index != ~0 &&
+  if (pom && c->pppox_sw_if_index != ~0 &&
       c->pppox_sw_if_index < vec_len (pom->virtual_interface_index_by_sw_if_index))
     {
       unit = pom->virtual_interface_index_by_sw_if_index[c->pppox_sw_if_index];
