@@ -409,10 +409,22 @@ pppox_lower_up(u32 sw_if_index)
   if (unit < vec_len (pom->virtual_interfaces)
       && !pool_is_free_index (pom->virtual_interfaces, unit))
     {
-      pppox_virtual_interface_t *t = pool_elt_at_index (pom->virtual_interfaces, unit);
+      struct protent *protp;
+      pppox_virtual_interface_t *t =
+        pool_elt_at_index (pom->virtual_interfaces, unit);
+
       t->pppoe_session_allocated = 1;
-      start_link (unit);
+
+      new_phase (unit, PHASE_INITIALIZE);
+      for (int i = 0; (protp = protocols[i]) != NULL; ++i)
+        {
+          if (protp->init != NULL)
+            (*protp->init) (unit);
+        }
+      init_auth_context (unit);
+
       lcp_open (unit);
+      start_link (unit);
     }
 }
 
