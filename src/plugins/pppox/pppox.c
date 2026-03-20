@@ -447,10 +447,14 @@ pppox_set_auth (u32 sw_if_index, u8 * username, u8 * password)
   pppox_virtual_interface_t *t = 0;
   int unit;
 
+  if (sw_if_index >= vec_len (pom->virtual_interface_index_by_sw_if_index))
+    return VNET_API_ERROR_INVALID_INTERFACE;
+
   unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
+  if (unit == ~0 || pool_is_free_index (pom->virtual_interfaces, unit))
+    return VNET_API_ERROR_INVALID_INTERFACE;
+
   t = pool_elt_at_index (pom->virtual_interfaces, unit);
-  
-  unit = pom->virtual_interface_index_by_sw_if_index[sw_if_index];
 
   // pap client.
   if (upap[unit].us_user) {
@@ -478,11 +482,15 @@ pppox_set_auth (u32 sw_if_index, u8 * username, u8 * password)
 
   // after auth configured, notify pppoe to open session to start.
   static void (*pppoe_client_open_session_func) (u32 client_index) = 0;
-  if (pppoe_client_open_session_func ==0 ) {
-    pppoe_client_open_session_func = vlib_get_plugin_symbol("pppoeclient_plugin.so", "pppoe_client_open_session");
-  }
-  (*pppoe_client_open_session_func) (t->pppoe_client_index);
-  
+  if (pppoe_client_open_session_func == 0)
+    {
+      pppoe_client_open_session_func =
+        vlib_get_plugin_symbol ("pppoeclient_plugin.so",
+                                "pppoe_client_open_session");
+    }
+  if (pppoe_client_open_session_func)
+    (*pppoe_client_open_session_func) (t->pppoe_client_index);
+
   return 0;
 }
 

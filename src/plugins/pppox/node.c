@@ -44,55 +44,41 @@ pppox_input (vlib_main_t * vm,
              vlib_node_runtime_t * node,
              vlib_frame_t * from_frame)
 {
-  u32 n_left_from, next_index, * from, * to_next;
+  u32 n_left_from, *from;
   u32 pppox_pkts = 0;
 
   from = vlib_frame_vector_args (from_frame);
   n_left_from = from_frame->n_vectors;
-  next_index = node->cached_next_index;
 
   while (n_left_from > 0)
     {
-      u32 n_left_to_next;
-      vlib_get_next_frame (vm, node, next_index,
-			   to_next, n_left_to_next);
-      // Control packet use 1 batch is enough.
-      while (n_left_from > 0 && n_left_to_next > 0)
-	{
-	  u32 bi0;
-	  vlib_buffer_t * b0;
-	  // The control packet will be dropped after processed.
-	  u32 next0 = PPPOX_INPUT_NEXT_DROP;
-	  u32 error0 = 0;
+      u32 bi0;
+      vlib_buffer_t *b0;
+      u32 error0 = 0;
 
-	  bi0 = from[0];
-	  to_next[0] = bi0;
-	  from += 1;
-	  to_next += 1;
-	  n_left_from -= 1;
-	  n_left_to_next -= 1;
+      bi0 = from[0];
+      from += 1;
+      n_left_from -= 1;
 
-	  b0 = vlib_get_buffer (vm, bi0);
+      b0 = vlib_get_buffer (vm, bi0);
+      pppox_pkts++;
 
-          pppox_pkts++;
+      if (consume_pppox_ctrl_pkt (bi0, b0) != 0)
+        error0 = PPPOX_ERROR_CONTROL_PLANE_DISABLED;
 
-          (void)consume_pppox_ctrl_pkt (bi0, b0);
+      b0->error = error0 ? node->errors[error0] : 0;
 
-          b0->error = error0 ? node->errors[error0] : 0;
+      if (PREDICT_FALSE (b0->flags & VLIB_BUFFER_IS_TRACED))
+        {
+          pppox_rx_trace_t *tr = vlib_add_trace (vm, node, b0, sizeof (*tr));
+          tr->sw_if_index = vnet_buffer (b0)->sw_if_index[VLIB_RX];
+          tr->error = error0;
+        }
 
-          if (PREDICT_FALSE(b0->flags & VLIB_BUFFER_IS_TRACED))
-            {
-              pppox_rx_trace_t *tr
-                = vlib_add_trace (vm, node, b0, sizeof (*tr));
-              tr->error = error0;
-              // TODO: fill trace...
-            }
-	  vlib_validate_buffer_enqueue_x1 (vm, node, next_index,
-					   to_next, n_left_to_next,
-					   bi0, next0);
-	}
-
-      vlib_put_next_frame (vm, node, next_index, n_left_to_next);
+      /* PPP control packets are consumed locally by PPPoX control-plane.
+       * Free them here instead of forcing them through error-drop, which
+       * only inflates null-node blackhole counters and hides real failures. */
+      vlib_buffer_free (vm, &bi0, 1);
     }
 
   vlib_node_increment_counter (vm, pppox_input_node.index,
