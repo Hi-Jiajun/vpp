@@ -405,6 +405,33 @@ int consume_pppoe_discovery_pkt (u32 bi, vlib_buffer_t * b,
                             &result);
       if (PREDICT_FALSE (result.fields.client_index == ~0))
         {
+          if (pppoe->code == PPPOE_PADS && host_uniq == 0)
+            {
+              pppoe_client_t *candidate = 0;
+              pppoe_client_t *it;
+
+              pool_foreach (it, pem->clients)
+                {
+                  if (it->sw_if_index != sw_if_index
+                      || it->state != PPPOE_CLIENT_REQUEST)
+                    continue;
+
+                  if (candidate)
+                    {
+                      candidate = 0;
+                      break;
+                    }
+
+                  candidate = it;
+                }
+
+              if (candidate)
+                {
+                  c = candidate;
+                  break;
+                }
+            }
+
           return 1;
         }
 
