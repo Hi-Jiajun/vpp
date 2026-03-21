@@ -15,6 +15,7 @@
 // NOTE: too keep relative independency, code here are used only to keep pppd compiled.
 // code that iteractivate with vpp should be moved to pppox.c
 extern void channel_cleanup (int unit);
+extern void pppox_set_interface_mtu (int unit, int mtu);
 
 struct channel vpp_channel = {
   .options = 0,
@@ -129,9 +130,7 @@ new_phase(int unit, int p)
 
 void netif_set_mtu (int unit, int mtu) /* Set PPP interface MTU */
 {
-  // TODO: set pppox interface mtu??
-  unit = unit;
-  mtu = mtu;
+  pppox_set_interface_mtu (unit, mtu);
 }
 
 int  netif_get_mtu (int unit)     /* Get PPP interface MTU */

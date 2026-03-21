@@ -72,6 +72,7 @@ typedef struct
 
   /* IPCP options derived from the PPPoE client CLI. */
   u8 add_default_route;
+  u8 use_peer_dns;
 } pppox_virtual_interface_t;
 
 typedef struct
@@ -108,6 +109,8 @@ void pppox_lower_up(u32);
 
 int pppox_set_auth (u32, u8 *, u8 *);
 int pppox_set_add_default_route (u32, u8);
+int pppox_set_use_peer_dns (u32, u8);
+void pppox_set_interface_mtu (int, int);
 
 #endif /* _PPPOX_H */
 

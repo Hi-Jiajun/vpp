@@ -91,6 +91,22 @@ struct notifier *ip_down_notifier = NULL;
 static int default_route_set[NUM_PPP];	/* Have set up a default route */
 static int proxy_arp_set[NUM_PPP];	/* Have created proxy arp entry */
 static bool usepeerdns[NUM_PPP];			/* Ask peer for DNS addrs */
+
+void
+ipcp_set_use_peer_dns (int unit, bool enabled)
+{
+    if (unit < 0 || unit >= NUM_PPP)
+        return;
+
+    usepeerdns[unit] = enabled;
+    ipcp_wantoptions[unit].req_dns1 = enabled;
+    ipcp_wantoptions[unit].req_dns2 = enabled;
+
+    if (!enabled) {
+        ipcp_wantoptions[unit].dnsaddr[0] = 0;
+        ipcp_wantoptions[unit].dnsaddr[1] = 0;
+    }
+}
 static int ipcp_is_up[NUM_PPP];			/* have called np_up() */
 static int ipcp_is_open[NUM_PPP];		/* haven't called np_finished() */
 static bool ask_for_local[NUM_PPP];		/* request our address from peer */

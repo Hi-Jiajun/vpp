@@ -79,6 +79,28 @@ sync_pppoe_client_live_default_route (pppoe_client_t *c)
                                               c->use_peer_route);
 }
 
+static int
+sync_pppoe_client_live_use_peer_dns (pppoe_client_t *c)
+{
+  static int (*pppox_set_use_peer_dns_func) (u32, u8) = 0;
+
+  if (c->pppox_sw_if_index == ~0)
+    return 0;
+
+  if (pppox_set_use_peer_dns_func == 0)
+    {
+      pppox_set_use_peer_dns_func =
+        vlib_get_plugin_symbol ("pppox_plugin.so",
+                                "pppox_set_use_peer_dns");
+    }
+
+  if (pppox_set_use_peer_dns_func == 0)
+    return VNET_API_ERROR_UNSUPPORTED;
+
+  return (*pppox_set_use_peer_dns_func) (c->pppox_sw_if_index,
+                                         c->use_peer_dns);
+}
+
 static void
 send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
                 u8 packet_code, u16 session_id, int is_broadcast)
@@ -1206,6 +1228,12 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
   if (rv)
     return clib_error_return (
       0, "failed to sync live add-default-route on pppox sw-if-index %u: %d",
+      c->pppox_sw_if_index, rv);
+
+  rv = sync_pppoe_client_live_use_peer_dns (c);
+  if (rv)
+    return clib_error_return (
+      0, "failed to sync live use-peer-dns on pppox sw-if-index %u: %d",
       c->pppox_sw_if_index, rv);
 
   if (sync_live_auth)

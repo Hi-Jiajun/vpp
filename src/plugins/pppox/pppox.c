@@ -472,6 +472,7 @@ pppox_lower_up(u32 sw_if_index)
         }
       init_auth_context (unit);
       ipcp_wantoptions[unit].default_route = t->add_default_route;
+      ipcp_set_use_peer_dns (unit, t->use_peer_dns);
 
       lcp_open (unit);
       start_link (unit);
@@ -561,6 +562,23 @@ pppox_set_add_default_route (u32 sw_if_index, u8 enabled)
 
   t->add_default_route = !!enabled;
   ipcp_wantoptions[unit].default_route = t->add_default_route;
+
+  return 0;
+}
+
+__clib_export int
+pppox_set_use_peer_dns (u32 sw_if_index, u8 enabled)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  u32 unit;
+
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, sw_if_index, &unit);
+  if (t == 0)
+    return VNET_API_ERROR_INVALID_INTERFACE;
+
+  t->use_peer_dns = !!enabled;
+  ipcp_set_use_peer_dns (unit, t->use_peer_dns);
 
   return 0;
 }
@@ -680,6 +698,44 @@ ifaddr_callback (void *arg)
 }
 
 void vl_api_rpc_call_main_thread (void *fp, u8 * data, u32 data_length);
+
+typedef struct
+{
+  int unit;
+  u32 mtu;
+} mtu_arg_t;
+
+static void *
+mtu_callback (void *arg)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  mtu_arg_t *a = arg;
+
+  if (a->unit < 0 || a->mtu == 0)
+    return 0;
+
+  t = pppox_get_virtual_interface_by_unit (pom, a->unit);
+  if (t == 0)
+    return 0;
+
+  vnet_sw_interface_set_mtu (pom->vnet_main, t->sw_if_index, a->mtu);
+  return 0;
+}
+
+__clib_export void
+pppox_set_interface_mtu (int unit, int mtu)
+{
+  mtu_arg_t a = {
+    .unit = unit,
+    .mtu = mtu,
+  };
+
+  if (unit < 0 || mtu <= 0)
+    return;
+
+  vl_api_rpc_call_main_thread (mtu_callback, (u8 *) &a, sizeof (a));
+}
 
 typedef struct
 {
