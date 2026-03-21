@@ -34,7 +34,7 @@ extern void pppd_calltimeout (void);
 #include <vppinfra/hash.h>
 #include <vppinfra/bihash_template.c>
 
-pppox_main_t pppox_main;
+__clib_export pppox_main_t pppox_main;
 
 static pppox_virtual_interface_t *
 pppox_get_virtual_interface_by_unit (pppox_main_t *pom, u32 unit)
