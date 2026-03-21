@@ -54,11 +54,12 @@ vl_api_pppoe_add_del_client_t_handler (vl_api_pppoe_add_del_client_t * mp)
 static void send_pppoe_client_details
   (pppoe_client_t * t, vl_api_registration_t * reg, u32 context)
 {
+  pppoeclient_main_t *pem = &pppoeclient_main;
   vl_api_pppoe_client_details_t *rmp;
 
   rmp = vl_msg_api_alloc (sizeof (*rmp));
   clib_memset (rmp, 0, sizeof (*rmp));
-  rmp->_vl_msg_id = ntohs (VL_API_PPPOE_CLIENT_DETAILS);
+  rmp->_vl_msg_id = ntohs (VL_API_PPPOE_CLIENT_DETAILS + pem->msg_id_base);
   rmp->context = context;
   rmp->sw_if_index = ntohl (t->sw_if_index);
   rmp->host_uniq = ntohl (t->host_uniq);
