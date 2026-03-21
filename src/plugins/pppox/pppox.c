@@ -492,7 +492,7 @@ pppox_lower_down(u32 sw_if_index)
     }
 }
 
-int
+__clib_export int
 pppox_set_auth (u32 sw_if_index, u8 * username, u8 * password)
 {
   pppox_main_t * pom = &pppox_main;

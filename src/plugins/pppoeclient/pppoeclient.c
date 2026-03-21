@@ -36,6 +36,27 @@ get_pppox_main (void)
   return pppox_main_p;
 }
 
+static int
+sync_pppoe_client_live_auth (pppoe_client_t *c)
+{
+  static int (*pppox_set_auth_func) (u32, u8 *, u8 *) = 0;
+
+  if (c->pppox_sw_if_index == ~0 || c->username == 0 || c->password == 0)
+    return 0;
+
+  if (pppox_set_auth_func == 0)
+    {
+      pppox_set_auth_func =
+        vlib_get_plugin_symbol ("pppox_plugin.so", "pppox_set_auth");
+    }
+
+  if (pppox_set_auth_func == 0)
+    return VNET_API_ERROR_UNSUPPORTED;
+
+  return (*pppox_set_auth_func) (c->pppox_sw_if_index, c->username,
+                                 c->password);
+}
+
 static void
 send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
                 u8 packet_code, u16 session_id, int is_broadcast)
@@ -645,7 +666,7 @@ format_pppoe_client (u8 * s, va_list * args)
   return s;
 }
 
-void
+__clib_export void
 pppoe_client_open_session (u32 client_index)
 {
   pppoeclient_main_t *pem = &pppoeclient_main;
@@ -663,7 +684,7 @@ pppoe_client_open_session (u32 client_index)
   return;
 }
 
-void
+__clib_export void
 pppoe_client_close_session (u32 client_index)
 {
   pppoeclient_main_t *pem = &pppoeclient_main;
@@ -1049,6 +1070,8 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
   u32 timeout = 0;
   u8 use_peer_dns = 0;
   u8 use_peer_route = 0;
+  u8 sync_live_auth = 0;
+  int rv;
   //u32 ip4_addr = 0;
   //u32 ip4_netmask = 0;
 
@@ -1086,11 +1109,13 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
     {
       vec_free (c->username);
       c->username = username;
+      sync_live_auth = 1;
     }
   if (password)
     {
       vec_free (c->password);
       c->password = password;
+      sync_live_auth = 1;
     }
   if (mtu > 0)
     c->mtu = mtu;
@@ -1102,6 +1127,15 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
     c->use_peer_dns = 1;
   if (use_peer_route)
     c->use_peer_route = 1;
+
+  if (sync_live_auth)
+    {
+      rv = sync_pppoe_client_live_auth (c);
+      if (rv)
+        return clib_error_return (
+          0, "failed to sync live auth on pppox sw-if-index %u: %d",
+          c->pppox_sw_if_index, rv);
+    }
 
   vlib_cli_output (vm, "PPPoE client %u updated", client_index);
   return 0;
