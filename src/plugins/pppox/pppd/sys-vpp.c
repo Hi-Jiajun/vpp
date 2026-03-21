@@ -11,6 +11,7 @@
 #include "upap.h"
 #include "chap-new.h"
 #include "lcp.h"
+#include "ipv6cp.h"
 
 // NOTE: too keep relative independency, code here are used only to keep pppd compiled.
 // code that iteractivate with vpp should be moved to pppox.c
@@ -42,6 +43,7 @@ struct protent *protocols[] = {
     &lcp_protent,
     &pap_protent,
     &ipcp_protent,
+    &ipv6cp_protent,
     &chap_protent,
     NULL
 };

@@ -45,6 +45,7 @@
 #include "pathnames.h"
 
 /* global vars */
+fsm ipv6cp_fsm[NUM_PPP];		/* IPV6CP fsm structure */
 ipv6cp_options ipv6cp_wantoptions[NUM_PPP];	/* Options that we want to request */
 ipv6cp_options ipv6cp_gotoptions[NUM_PPP];	/* Options that peer ack'd */
 ipv6cp_options ipv6cp_allowoptions[NUM_PPP];	/* Options we allow peer to request */

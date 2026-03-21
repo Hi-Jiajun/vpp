@@ -24,6 +24,7 @@ add_vpp_plugin(pppox
     pppd/ecp.c
     pppd/fsm.c
     pppd/ipcp.c
+    pppd/ipv6cp.c
     pppd/lcp.c
     pppd/magic.c
     pppd/md5.c
