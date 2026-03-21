@@ -599,7 +599,10 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
   vlib_cli_output (vm, "    client-state %U session-id %u ac-mac %U",
                    format_pppoe_client_state, c->state, c->session_id,
                    format_ethernet_address, c->ac_mac_address);
-  vlib_cli_output (vm, "    ac-name %v", c->ac_name ? c->ac_name : (u8 *) "<none>");
+  if (c->ac_name)
+    vlib_cli_output (vm, "    ac-name %v", c->ac_name);
+  else
+    vlib_cli_output (vm, "    ac-name <none>");
   if (t)
     {
       vlib_cli_output (vm, "    pppox-sw-if-index %u (%U) pppox-unit %u session-allocated %u",
@@ -616,9 +619,16 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
     }
   else
     vlib_cli_output (vm, "    pppox-sw-if-index %u pppox-unit unavailable", c->pppox_sw_if_index);
-  vlib_cli_output (vm, "    auth-user %v mtu %u mru %u timeout %u use-peer-dns %u use-peer-route %u",
-                   c->username ? c->username : (u8 *) "<unset>", c->mtu, c->mru, c->timeout,
-                   c->use_peer_dns, c->use_peer_route);
+  if (c->username)
+    vlib_cli_output (vm,
+                     "    auth-user %v mtu %u mru %u timeout %u use-peer-dns %u use-peer-route %u",
+                     c->username, c->mtu, c->mru, c->timeout,
+                     c->use_peer_dns, c->use_peer_route);
+  else
+    vlib_cli_output (vm,
+                     "    auth-user <unset> mtu %u mru %u timeout %u use-peer-dns %u use-peer-route %u",
+                     c->mtu, c->mru, c->timeout,
+                     c->use_peer_dns, c->use_peer_route);
 }
 
 u8 *
@@ -627,11 +637,11 @@ format_pppoe_client (u8 * s, va_list * args)
   pppoe_client_t *c = va_arg (*args, pppoe_client_t *);
   pppoeclient_main_t *pem = &pppoeclient_main;
 
-  s = format (s, "[%d] sw-if-index %d host_uniq %d state %U session-id %d ac-mac-address %U",
-              c - pem->clients, c->sw_if_index, c->host_uniq,
-              format_pppoe_client_state, c->state,
-              c->session_id,
-              format_ethernet_address, c->ac_mac_address);
+  s = format (s,
+              "[%u] sw-if-index %u host-uniq %u pppox-sw-if-index %u state %U session-id %u ac-mac-address %U",
+              (u32) (c - pem->clients), c->sw_if_index, c->host_uniq,
+              c->pppox_sw_if_index, format_pppoe_client_state, c->state,
+              c->session_id, format_ethernet_address, c->ac_mac_address);
   return s;
 }
 
@@ -959,7 +969,7 @@ show_pppoe_client_command_fn (vlib_main_t * vm,
 
   pool_foreach (t, pem->clients)
     {
-      show_pppoe_client_detail_one (vm, t);
+      vlib_cli_output (vm, "%U", format_pppoe_client, t);
     };
 
   return 0;
