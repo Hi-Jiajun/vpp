@@ -121,6 +121,72 @@ pppoe_client_set_peer_dns (u32 pppox_sw_if_index, u32 dns1, u32 dns2)
   c->dns2 = dns2;
 }
 
+__clib_export void
+pppoe_client_set_ipv6_state (u32 pppox_sw_if_index,
+                             const ip6_address_t *ip6_addr,
+                             const ip6_address_t *ip6_peer_addr,
+                             u8 prefix_len)
+{
+  pppoeclient_main_t *pem = &pppoeclient_main;
+  pppoe_client_t *c;
+  u32 client_index;
+
+  if (pppox_sw_if_index == ~0 ||
+      pppox_sw_if_index >= vec_len (pem->client_index_by_pppox_sw_if_index))
+    return;
+
+  client_index = pem->client_index_by_pppox_sw_if_index[pppox_sw_if_index];
+  if (client_index == ~0 || pool_is_free_index (pem->clients, client_index))
+    return;
+
+  c = pool_elt_at_index (pem->clients, client_index);
+
+  if (ip6_addr)
+    c->ip6_addr = *ip6_addr;
+  else
+    ip6_address_set_zero (&c->ip6_addr);
+
+  if (ip6_peer_addr)
+    c->ip6_peer_addr = *ip6_peer_addr;
+  else
+    ip6_address_set_zero (&c->ip6_peer_addr);
+
+  c->ipv6_prefix_len = prefix_len;
+  c->use_peer_ipv6 = (prefix_len != 0 && !ip6_address_is_zero (&c->ip6_peer_addr));
+}
+
+__clib_export void
+pppoe_client_set_ipv6_state (u32 pppox_sw_if_index,
+                             const ip6_address_t *ip6_addr,
+                             const ip6_address_t *ip6_peer_addr,
+                             u8 ipv6_prefix_len)
+{
+  pppoeclient_main_t *pem = &pppoeclient_main;
+  pppoe_client_t *c;
+  u32 client_index;
+
+  if (pppox_sw_if_index == ~0 ||
+      pppox_sw_if_index >= vec_len (pem->client_index_by_pppox_sw_if_index))
+    return;
+
+  client_index = pem->client_index_by_pppox_sw_if_index[pppox_sw_if_index];
+  if (client_index == ~0 || pool_is_free_index (pem->clients, client_index))
+    return;
+
+  c = pool_elt_at_index (pem->clients, client_index);
+  if (ip6_addr)
+    c->ip6_addr = *ip6_addr;
+  else
+    ip6_address_set_zero (&c->ip6_addr);
+
+  if (ip6_peer_addr)
+    c->ip6_peer_addr = *ip6_peer_addr;
+  else
+    ip6_address_set_zero (&c->ip6_peer_addr);
+
+  c->ipv6_prefix_len = ipv6_prefix_len;
+}
+
 static void
 send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
                 u8 packet_code, u16 session_id, int is_broadcast)
@@ -740,9 +806,22 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
       vlib_cli_output (vm, "    ipv4 local %U peer %U",
                        format_ip4_address, &t->our_addr,
                        format_ip4_address, &t->his_addr);
-      vlib_cli_output (vm, "    ipv6 local %U/%u peer %U use-peer-ipv6 %u",
-                       format_ip6_address, &t->our_ipv6, c->ipv6_prefix_len,
-                       format_ip6_address, &t->his_ipv6, c->use_peer_ipv6);
+      {
+        const ip6_address_t *local_ip6 =
+          ip6_address_is_zero (&c->ip6_addr) ? &t->our_ipv6 : &c->ip6_addr;
+        const ip6_address_t *peer_ip6 =
+          ip6_address_is_zero (&c->ip6_peer_addr) ? &t->his_ipv6 : &c->ip6_peer_addr;
+        u8 prefix_len = c->ipv6_prefix_len;
+
+        if (prefix_len == 0
+            && (!ip6_address_is_zero (local_ip6)
+                || !ip6_address_is_zero (peer_ip6)))
+          prefix_len = 64;
+
+        vlib_cli_output (vm, "    ipv6 local %U/%u peer %U use-peer-ipv6 %u",
+                         format_ip6_address, local_ip6, prefix_len,
+                         format_ip6_address, peer_ip6, c->use_peer_ipv6);
+      }
     }
   else if (unit != ~0)
     vlib_cli_output (vm,
@@ -846,6 +925,10 @@ pppoe_client_close_session (u32 client_index)
 
   c->dns1 = 0;
   c->dns2 = 0;
+  ip6_address_set_zero (&c->ip6_addr);
+  ip6_address_set_zero (&c->ip6_peer_addr);
+  c->ipv6_prefix_len = 0;
+  c->use_peer_ipv6 = 0;
   c->next_transmit = 0;
   c->retry_count = 0;
   c->state = PPPOE_CLIENT_DISCOVERY;

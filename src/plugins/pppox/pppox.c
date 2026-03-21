@@ -390,6 +390,56 @@ pppox_handle_allocated_address (pppox_virtual_interface_t * t, u8 is_add)
   }
 }
 
+#define PPPOX_IPV6CP_PREFIX_LEN 64
+
+static_always_inline void
+pppox_make_ipv6_link_local_address (ip6_address_t *addr, const u8 *ifaceid)
+{
+  clib_memset (addr, 0, sizeof (*addr));
+  addr->as_u64[0] = clib_host_to_net_u64 (0xFE80000000000000ULL);
+  clib_memcpy (&addr->as_u8[8], ifaceid, 8);
+}
+
+static void
+pppox_handle_allocated_ipv6_address (pppox_virtual_interface_t *t, u8 is_add)
+{
+  pppox_main_t *pom = &pppox_main;
+  fib_prefix_t pfx = {
+    .fp_len = 128,
+    .fp_proto = FIB_PROTOCOL_IP6,
+  };
+  ip46_address_t nh = {
+    .ip6 = t->his_ipv6,
+  };
+  u32 fib_index;
+
+  if (!ip6_address_is_zero (&t->our_ipv6))
+    ip6_add_del_interface_address (pom->vlib_main, t->sw_if_index,
+                                   &t->our_ipv6,
+                                   PPPOX_IPV6CP_PREFIX_LEN,
+                                   !is_add /* is_del */);
+
+  if (ip6_address_is_zero (&t->his_ipv6))
+    return;
+
+  fib_index = fib_table_get_index_for_sw_if_index (FIB_PROTOCOL_IP6,
+                                                    t->sw_if_index);
+  pfx.fp_addr.ip6 = t->his_ipv6;
+
+  if (is_add)
+    fib_table_entry_path_add (fib_index, &pfx,
+                              FIB_SOURCE_API, FIB_ENTRY_FLAG_NONE,
+                              DPO_PROTO_IP6, &nh,
+                              t->sw_if_index, ~0, 1, NULL,
+                              FIB_ROUTE_PATH_FLAG_NONE);
+  else
+    fib_table_entry_path_remove (fib_index, &pfx,
+                                 FIB_SOURCE_API,
+                                 DPO_PROTO_IP6, &nh,
+                                 t->sw_if_index, ~0, 1,
+                                 FIB_ROUTE_PATH_FLAG_NONE);
+}
+
 void
 __clib_export pppox_free_interface(u32 hw_if_index)
 {
@@ -697,6 +747,67 @@ ifaddr_callback (void *arg)
   return 0;
 }
 
+typedef struct
+{
+  int unit;
+  int is_add;
+  ip6_address_t our_ipv6;
+  ip6_address_t his_ipv6;
+} if6addr_arg_t;
+
+static void *
+if6addr_callback (void *arg)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  if6addr_arg_t *a = arg;
+  static void (*pppoe_client_set_ipv6_state_func)
+    (u32, const ip6_address_t *, const ip6_address_t *, u8) = 0;
+  ip6_address_t zero_addr = { 0 };
+
+  if (a->unit < 0)
+    return 0;
+
+  t = pppox_get_virtual_interface_by_unit (pom, a->unit);
+  if (t == 0)
+    return 0;
+
+  if (a->is_add)
+    {
+      t->our_ipv6 = a->our_ipv6;
+      t->his_ipv6 = a->his_ipv6;
+      pppox_handle_allocated_ipv6_address (t, 1);
+    }
+  else
+    {
+      pppox_handle_allocated_ipv6_address (t, 0);
+      ip6_address_set_zero (&t->our_ipv6);
+      ip6_address_set_zero (&t->his_ipv6);
+    }
+
+  if (pppoe_client_set_ipv6_state_func == 0)
+    {
+      pppoe_client_set_ipv6_state_func =
+        vlib_get_plugin_symbol ("pppoeclient_plugin.so",
+                                "pppoe_client_set_ipv6_state");
+    }
+
+  if (pppoe_client_set_ipv6_state_func)
+    {
+      if (a->is_add)
+        (*pppoe_client_set_ipv6_state_func) (t->sw_if_index,
+                                             &a->our_ipv6,
+                                             &a->his_ipv6,
+                                             PPPOX_IPV6CP_PREFIX_LEN);
+      else
+        (*pppoe_client_set_ipv6_state_func) (t->sw_if_index,
+                                             &zero_addr,
+                                             &zero_addr, 0);
+    }
+
+  return 0;
+}
+
 void vl_api_rpc_call_main_thread (void *fp, u8 * data, u32 data_length);
 
 typedef struct
@@ -939,6 +1050,58 @@ int cifaddr (int unit, u32 our_adr, u32 his_adr)
   // our barrier finished...
   vl_api_rpc_call_main_thread (ifaddr_callback,
                                (u8 *) & a, sizeof (a));
+
+  return 1;
+}
+
+int
+sif6up (int unit)
+{
+  return (unit >= 0);
+}
+
+int
+sif6down (int unit)
+{
+  return (unit >= 0);
+}
+
+int
+sif6addr (int unit, const u8 *ourid, const u8 *hisid)
+{
+  if6addr_arg_t a;
+
+  if (unit < 0 || ourid == 0 || hisid == 0)
+    return 0;
+
+  clib_memset (&a, 0, sizeof (a));
+  a.unit = unit;
+  a.is_add = 1;
+  pppox_make_ipv6_link_local_address (&a.our_ipv6, ourid);
+  pppox_make_ipv6_link_local_address (&a.his_ipv6, hisid);
+
+  vl_api_rpc_call_main_thread (if6addr_callback,
+                               (u8 *) &a, sizeof (a));
+
+  return 1;
+}
+
+int
+cif6addr (int unit, const u8 *ourid, const u8 *hisid)
+{
+  if6addr_arg_t a;
+
+  if (unit < 0 || ourid == 0 || hisid == 0)
+    return 0;
+
+  clib_memset (&a, 0, sizeof (a));
+  a.unit = unit;
+  a.is_add = 0;
+  pppox_make_ipv6_link_local_address (&a.our_ipv6, ourid);
+  pppox_make_ipv6_link_local_address (&a.his_ipv6, hisid);
+
+  vl_api_rpc_call_main_thread (if6addr_callback,
+                               (u8 *) &a, sizeof (a));
 
   return 1;
 }

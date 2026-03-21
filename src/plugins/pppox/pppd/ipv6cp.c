@@ -44,6 +44,12 @@
 #include "ipv6cp.h"
 #include "pathnames.h"
 
+/* IPv6 platform hooks are implemented in pppox.c. */
+extern int sif6up (int unit);
+extern int sif6down (int unit);
+extern int sif6addr (int unit, const u8 *ourid, const u8 *hisid);
+extern int cif6addr (int unit, const u8 *ourid, const u8 *hisid);
+
 /* global vars */
 fsm ipv6cp_fsm[NUM_PPP];		/* IPV6CP fsm structure */
 ipv6cp_options ipv6cp_wantoptions[NUM_PPP];	/* Options that we want to request */
@@ -333,10 +339,13 @@ ipv6cp_reqci(f, inp, len, reject_as_is)
     ipv6cp_options *wo = &ipv6cp_wantoptions[f->unit];
     ipv6cp_options *ao = &ipv6cp_allowoptions[f->unit];
     ipv6cp_options *go = &ipv6cp_gotoptions[f->unit];
+    ipv6cp_options *ho = &ipv6cp_hisoptions[f->unit];
     int ret = CONFACK;
     int cilen;
     int i;
     
+    ho->neg_ifaceid = 0;
+
     while (*len > 0) {
         int citype, olen;
         
@@ -377,9 +386,9 @@ ipv6cp_reqci(f, inp, len, reject_as_is)
                         break;
                 }
                 if (i < 8) {
-                    /* Non-zero identifier, accept it */
-                    BCOPY(ci, go->ourid, 8);
-                    go->neg_ifaceid = 1;
+                    /* Non-zero identifier, record it as the peer identifier. */
+                    BCOPY(ci, ho->hisid, 8);
+                    ho->neg_ifaceid = 1;
                 } else {
                     /* Zero identifier, reject it */
                     ret = CONFREJ;
@@ -408,17 +417,36 @@ ipv6cp_up(f)
     fsm *f;
 {
     ipv6cp_options *go = &ipv6cp_gotoptions[f->unit];
-    
+    ipv6cp_options *ho = &ipv6cp_hisoptions[f->unit];
+
     if (go->neg_ifaceid) {
         dbglog("ipv6cp: up event - interface identifier negotiated");
     }
-    
+
+    if (!ho->neg_ifaceid) {
+        dbglog("ipv6cp: peer interface identifier not negotiated");
+        return;
+    }
+
+    if (!sif6up(f->unit)) {
+        dbglog("ipv6cp: sif6up failed");
+        return;
+    }
+
+    if (!sif6addr(f->unit, go->ourid, ho->hisid)) {
+        dbglog("ipv6cp: sif6addr failed");
+        sif6down(f->unit);
+        return;
+    }
+
+    sifnpmode(f->unit, PPP_IPV6, NPMODE_PASS);
+    np_up(f->unit, PPP_IPV6);
     ipv6cp_is_up[f->unit] = 1;
-    
+
     /* Call the up hook if defined */
     if (ipv6_up_hook)
         ipv6_up_hook();
-        
+
     /* Notify listeners */
     notify(ipv6_up_notifier, 0);
 }
@@ -431,12 +459,21 @@ static void
 ipv6cp_down(f)
     fsm *f;
 {
-    ipv6cp_is_up[f->unit] = 0;
-    
+    ipv6cp_options *go = &ipv6cp_gotoptions[f->unit];
+    ipv6cp_options *ho = &ipv6cp_hisoptions[f->unit];
+
+    if (ipv6cp_is_up[f->unit]) {
+        sifnpmode(f->unit, PPP_IPV6, NPMODE_DROP);
+        cif6addr(f->unit, go->ourid, ho->hisid);
+        sif6down(f->unit);
+        np_down(f->unit, PPP_IPV6);
+        ipv6cp_is_up[f->unit] = 0;
+    }
+
     /* Call the down hook if defined */
     if (ipv6_down_hook)
         ipv6_down_hook();
-        
+
     /* Notify listeners */
     notify(ipv6_down_notifier, 0);
 }
@@ -460,7 +497,10 @@ static void
 ipv6cp_finished(f)
     fsm *f;
 {
-    ipv6cp_is_open[f->unit] = 0;
+    if (ipv6cp_is_open[f->unit]) {
+        ipv6cp_is_open[f->unit] = 0;
+        np_finished(f->unit, PPP_IPV6);
+    }
     ipv6cp_is_up[f->unit] = 0;
 }
 
