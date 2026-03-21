@@ -404,8 +404,12 @@ static void
 pppox_handle_allocated_ipv6_address (pppox_virtual_interface_t *t, u8 is_add)
 {
   pppox_main_t *pom = &pppox_main;
-  fib_prefix_t pfx = {
+  fib_prefix_t peer_pfx = {
     .fp_len = 128,
+    .fp_proto = FIB_PROTOCOL_IP6,
+  };
+  fib_prefix_t default_pfx = {
+    .fp_len = 0,
     .fp_proto = FIB_PROTOCOL_IP6,
   };
   ip46_address_t nh = {
@@ -424,20 +428,38 @@ pppox_handle_allocated_ipv6_address (pppox_virtual_interface_t *t, u8 is_add)
 
   fib_index = fib_table_get_index_for_sw_if_index (FIB_PROTOCOL_IP6,
                                                     t->sw_if_index);
-  pfx.fp_addr.ip6 = t->his_ipv6;
+  peer_pfx.fp_addr.ip6 = t->his_ipv6;
 
   if (is_add)
-    fib_table_entry_path_add (fib_index, &pfx,
-                              FIB_SOURCE_API, FIB_ENTRY_FLAG_NONE,
-                              DPO_PROTO_IP6, &nh,
-                              t->sw_if_index, ~0, 1, NULL,
-                              FIB_ROUTE_PATH_FLAG_NONE);
+    {
+      fib_table_entry_path_add (fib_index, &peer_pfx,
+                                FIB_SOURCE_API, FIB_ENTRY_FLAG_NONE,
+                                DPO_PROTO_IP6, &nh,
+                                t->sw_if_index, ~0, 1, NULL,
+                                FIB_ROUTE_PATH_FLAG_NONE);
+
+      if (t->add_default_route)
+        fib_table_entry_path_add (fib_index, &default_pfx,
+                                  FIB_SOURCE_API, FIB_ENTRY_FLAG_NONE,
+                                  DPO_PROTO_IP6, &nh,
+                                  t->sw_if_index, ~0, 1, NULL,
+                                  FIB_ROUTE_PATH_FLAG_NONE);
+    }
   else
-    fib_table_entry_path_remove (fib_index, &pfx,
-                                 FIB_SOURCE_API,
-                                 DPO_PROTO_IP6, &nh,
-                                 t->sw_if_index, ~0, 1,
-                                 FIB_ROUTE_PATH_FLAG_NONE);
+    {
+      if (t->add_default_route)
+        fib_table_entry_path_remove (fib_index, &default_pfx,
+                                     FIB_SOURCE_API,
+                                     DPO_PROTO_IP6, &nh,
+                                     t->sw_if_index, ~0, 1,
+                                     FIB_ROUTE_PATH_FLAG_NONE);
+
+      fib_table_entry_path_remove (fib_index, &peer_pfx,
+                                   FIB_SOURCE_API,
+                                   DPO_PROTO_IP6, &nh,
+                                   t->sw_if_index, ~0, 1,
+                                   FIB_ROUTE_PATH_FLAG_NONE);
+    }
 }
 
 void

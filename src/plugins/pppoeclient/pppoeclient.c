@@ -789,6 +789,13 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
         vlib_cli_output (vm, "    ipv6 local %U/%u peer %U use-peer-ipv6 %u",
                          format_ip6_address, local_ip6, prefix_len,
                          format_ip6_address, peer_ip6, c->use_peer_ipv6);
+        vlib_cli_output (
+          vm,
+          "    ipv6 source %s peer-host-route %u default-route-config %u",
+          (!ip6_address_is_zero (local_ip6) || !ip6_address_is_zero (peer_ip6))
+            ? "ipv6cp-link-local"
+            : "unset",
+          !ip6_address_is_zero (peer_ip6), c->use_peer_route);
       }
     }
   else if (unit != ~0)
