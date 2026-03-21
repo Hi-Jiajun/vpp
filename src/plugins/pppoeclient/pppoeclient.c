@@ -594,24 +594,66 @@ static u8 * format_pppoe_client_state (u8 * s, va_list * va)
   return s;
 }
 
+static pppox_virtual_interface_t *
+pppoe_client_get_detail_virtual_interface (pppoeclient_main_t *pem,
+                                           pppoe_client_t *c,
+                                           u32 client_index,
+                                           u32 *unit,
+                                           u8 *unit_from_hw)
+{
+  pppox_main_t *pom = get_pppox_main ();
+  pppox_virtual_interface_t *t = 0;
+
+  if (unit)
+    *unit = ~0;
+  if (unit_from_hw)
+    *unit_from_hw = 0;
+
+  if (pom == 0 || c->pppox_sw_if_index == ~0)
+    return 0;
+
+  if (c->pppox_sw_if_index < vec_len (pom->virtual_interface_index_by_sw_if_index))
+    *unit = pom->virtual_interface_index_by_sw_if_index[c->pppox_sw_if_index];
+
+  if (*unit == ~0)
+    {
+      vnet_sw_interface_t *sw =
+        vnet_get_sw_interface_or_null (pem->vnet_main, c->pppox_sw_if_index);
+
+      if (sw)
+        {
+          vnet_hw_interface_t *hi =
+            vnet_get_hw_interface (pem->vnet_main, sw->hw_if_index);
+          *unit = hi->dev_instance;
+          if (unit_from_hw)
+            *unit_from_hw = 1;
+        }
+    }
+
+  if (*unit != ~0 && *unit < vec_len (pom->virtual_interfaces))
+    {
+      pppox_virtual_interface_t *candidate =
+        pool_elt_at_index (pom->virtual_interfaces, *unit);
+
+      if (candidate->sw_if_index == c->pppox_sw_if_index &&
+          candidate->pppoe_client_index == client_index)
+        t = candidate;
+    }
+
+  return t;
+}
+
 static void
 show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
 {
   pppoeclient_main_t *pem = &pppoeclient_main;
-  pppox_main_t *pom = get_pppox_main ();
   u32 client_index = c - pem->clients;
   pppox_virtual_interface_t *t = 0;
   u32 unit = ~0;
+  u8 unit_from_hw = 0;
 
-  if (pom && c->pppox_sw_if_index != ~0 &&
-      c->pppox_sw_if_index < vec_len (pom->virtual_interface_index_by_sw_if_index))
-    {
-      unit = pom->virtual_interface_index_by_sw_if_index[c->pppox_sw_if_index];
-      if (unit != ~0 && !pool_is_free_index (pom->virtual_interfaces, unit))
-        {
-          t = pool_elt_at_index (pom->virtual_interfaces, unit);
-        }
-    }
+  t = pppoe_client_get_detail_virtual_interface (pem, c, client_index, &unit,
+                                                  &unit_from_hw);
 
   vlib_cli_output (vm, "[%u] sw-if-index %u (%U) host-uniq %u",
                    client_index, c->sw_if_index,
@@ -628,7 +670,7 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
     {
       vlib_cli_output (vm, "    pppox-sw-if-index %u (%U) pppox-unit %u session-allocated %u",
                        c->pppox_sw_if_index,
-                       format_vnet_sw_if_index_name, pom->vnet_main,
+                       format_vnet_sw_if_index_name, pem->vnet_main,
                        c->pppox_sw_if_index,
                        unit, t->pppoe_session_allocated);
       vlib_cli_output (vm, "    ipv4 local %U peer %U",
@@ -638,6 +680,14 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
                        format_ip6_address, &t->our_ipv6, c->ipv6_prefix_len,
                        format_ip6_address, &t->his_ipv6, c->use_peer_ipv6);
     }
+  else if (unit != ~0)
+    vlib_cli_output (vm,
+                     "    pppox-sw-if-index %u (%U) pppox-unit %u detail-source %s",
+                     c->pppox_sw_if_index,
+                     format_vnet_sw_if_index_name, pem->vnet_main,
+                     c->pppox_sw_if_index,
+                     unit,
+                     unit_from_hw ? "hw-dev-instance" : "sw-if-map");
   else
     vlib_cli_output (vm, "    pppox-sw-if-index %u pppox-unit unavailable", c->pppox_sw_if_index);
   if (c->username)
