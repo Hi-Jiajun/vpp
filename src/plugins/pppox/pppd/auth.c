@@ -704,7 +704,11 @@ get_secret(unit, client, server, secret, secret_len, am_server)
       // ZDY: we do not leverage file storage, only support client one-way auth which
       // mean we auth with AC.
       if (!am_server) {
-	memcpy(secbuf, chap_client[unit].us_passwd, chap_client[unit].us_passwdlen);
+	len = chap_client[unit].us_passwdlen;
+	if (len >= sizeof(secbuf))
+	    len = sizeof(secbuf) - 1;
+	memcpy(secbuf, chap_client[unit].us_passwd, len);
+	secbuf[len] = 0;
       } else {
 	xerror("[%d], We do not support auth AC currently", unit);
 	return 0;
