@@ -150,6 +150,7 @@ ipv6cp_resetci(f)
     ipv6cp_options *wo = &ipv6cp_wantoptions[f->unit];
     ipv6cp_options *ao = &ipv6cp_allowoptions[f->unit];
 
+    wo->req_ifaceid = wo->neg_ifaceid && ao->neg_ifaceid;
     ipv6cp_gotoptions[f->unit] = *wo;
     ipv6cp_hisoptions[f->unit].neg_ifaceid = 0;
     
@@ -326,6 +327,47 @@ ipv6cp_rejci(f, cp, len)
 }
 
 
+static int
+ipv6cp_ifaceid_is_zero(id)
+    const u8 *id;
+{
+    int i;
+
+    for (i = 0; i < 8; i++)
+        if (id[i] != 0)
+            return 0;
+
+    return 1;
+}
+
+static void
+ipv6cp_generate_ifaceid(id, avoid)
+    u8 *id;
+    const u8 *avoid;
+{
+    do {
+        int i;
+
+        for (i = 0; i < 8; i++)
+            id[i] = (u_char) (rand() & 0xff);
+    } while (ipv6cp_ifaceid_is_zero(id)
+             || (avoid != 0 && bcmp(id, avoid, 8) == 0));
+}
+
+static void
+ipv6cp_get_suggested_ifaceid(go, wo, id)
+    ipv6cp_options *go;
+    ipv6cp_options *wo;
+    u8 *id;
+{
+    if (ipv6cp_ifaceid_is_zero(wo->hisid)
+        || (go->neg_ifaceid && bcmp(wo->hisid, go->ourid, 8) == 0))
+        ipv6cp_generate_ifaceid(wo->hisid,
+                                go->neg_ifaceid ? go->ourid : 0);
+
+    BCOPY(wo->hisid, id, 8);
+}
+
 /*
  * ipv6cp_reqci - Request peer's Configuration Information
  */
@@ -340,72 +382,108 @@ ipv6cp_reqci(f, inp, len, reject_as_is)
     ipv6cp_options *ao = &ipv6cp_allowoptions[f->unit];
     ipv6cp_options *go = &ipv6cp_gotoptions[f->unit];
     ipv6cp_options *ho = &ipv6cp_hisoptions[f->unit];
-    int ret = CONFACK;
-    int cilen;
-    int i;
-    
-    ho->neg_ifaceid = 0;
+    u_char *cip, *next, *p, *ucp = inp;
+    int rc = CONFACK;
+    int orc;
+    int l = *len;
 
-    while (*len > 0) {
-        int citype, olen;
-        
-        GETCHAR(citype, inp);
-        GETCHAR(olen, inp);
-        
-        if (olen < 2 || olen > *len) {
-            /* Invalid length */
-            ret = CONFREJ;
-            break;
+    memset(ho, 0, sizeof(*ho));
+
+    next = inp;
+    while (l > 0) {
+        int citype;
+        int cilen;
+
+        orc = CONFACK;
+        cip = p = next;
+
+        if (l < 2 || p[1] < 2 || p[1] > l) {
+            orc = CONFREJ;
+            cilen = l;
+            l = 0;
+            goto endswitch;
         }
-        
-        if (citype == CI_IFACEID) {
-            u_char ci[8];
-            
-            if (olen != 2+8) {
-                /* Invalid length for interface identifier */
-                ret = CONFREJ;
-                if (ret == CONFACK)
-                    ret = CONFREJ;
+
+        GETCHAR(citype, p);
+        GETCHAR(cilen, p);
+        l -= cilen;
+        next += cilen;
+
+        switch (citype) {
+        case CI_IFACEID:
+            if (reject_as_is || !wo->neg_ifaceid || !ao->neg_ifaceid
+                || cilen != 2 + 8) {
+                orc = CONFREJ;
                 break;
             }
-            
-            BCOPY(inp, ci, 8);
-            inp += 8;
-            *len -= 2+8;
-            
-            /* Check if we accept the identifier */
-            if (reject_as_is || !wo->neg_ifaceid || !ao->neg_ifaceid) {
-                /* Reject */
-                ret = CONFREJ;
-                if (ret == CONFACK)
-                    ret = CONFREJ;
+
+            if (ipv6cp_ifaceid_is_zero(p)
+                || (go->neg_ifaceid && bcmp(p, go->ourid, 8) == 0)) {
+                u_char ci[8];
+
+                orc = CONFNAK;
+                ipv6cp_get_suggested_ifaceid(go, wo, ci);
+                BCOPY(ci, p, 8);
+                BCOPY(ci, ho->hisid, 8);
             } else {
-                /* Accept and use as our identifier */
-                for (i = 0; i < 8; i++) {
-                    if (ci[i] != 0)
-                        break;
-                }
-                if (i < 8) {
-                    /* Non-zero identifier, record it as the peer identifier. */
-                    BCOPY(ci, ho->hisid, 8);
-                    ho->neg_ifaceid = 1;
-                } else {
-                    /* Zero identifier, reject it */
-                    ret = CONFREJ;
-                    if (ret == CONFACK)
-                        ret = CONFREJ;
-                }
+                BCOPY(p, ho->hisid, 8);
             }
-        } else {
-            /* Unknown option, reject it */
-            ret = CONFREJ;
-            if (ret == CONFACK)
-                ret = CONFREJ;
+
+            ho->neg_ifaceid = 1;
+            break;
+
+        default:
+            orc = CONFREJ;
             break;
         }
+
+endswitch:
+        if (orc == CONFACK && rc != CONFACK)
+            continue;
+
+        if (orc == CONFNAK) {
+            if (reject_as_is)
+                orc = CONFREJ;
+            else {
+                if (rc == CONFREJ)
+                    continue;
+                if (rc == CONFACK) {
+                    rc = CONFNAK;
+                    ucp = inp;
+                }
+            }
+        }
+
+        if (orc == CONFREJ && rc != CONFREJ) {
+            rc = CONFREJ;
+            ucp = inp;
+        }
+
+        if (ucp != cip)
+            BCOPY(cip, ucp, cilen);
+
+        INCPTR(cilen, ucp);
     }
 
-    return ret;
+    if (rc != CONFREJ && !ho->neg_ifaceid
+        && wo->req_ifaceid && !reject_as_is) {
+        u_char ci[8];
+
+        if (rc == CONFACK) {
+            rc = CONFNAK;
+            ucp = inp;
+            wo->req_ifaceid = 0;
+        }
+
+        ipv6cp_get_suggested_ifaceid(go, wo, ci);
+        PUTCHAR(CI_IFACEID, ucp);
+        PUTCHAR(2 + 8, ucp);
+        BCOPY(ci, ucp, 8);
+        INCPTR(8, ucp);
+    }
+
+    *len = ucp - inp;
+    return rc;
 }
 
 
