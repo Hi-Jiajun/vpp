@@ -702,6 +702,63 @@ void vl_api_rpc_call_main_thread (void *fp, u8 * data, u32 data_length);
 typedef struct
 {
   int unit;
+  u32 dns1;
+  u32 dns2;
+} dns_arg_t;
+
+static void *
+dns_callback (void *arg)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  dns_arg_t *a = arg;
+  static void (*pppoe_client_set_peer_dns_func) (u32, u32, u32) = 0;
+
+  if (a->unit < 0)
+    return 0;
+
+  t = pppox_get_virtual_interface_by_unit (pom, a->unit);
+  if (t == 0)
+    return 0;
+
+  if (pppoe_client_set_peer_dns_func == 0)
+    {
+      pppoe_client_set_peer_dns_func =
+        vlib_get_plugin_symbol ("pppoeclient_plugin.so",
+                                "pppoe_client_set_peer_dns");
+    }
+
+  if (pppoe_client_set_peer_dns_func)
+    (*pppoe_client_set_peer_dns_func) (t->sw_if_index, a->dns1, a->dns2);
+
+  return 0;
+}
+
+int
+sifdns (int unit, u32 dns1, u32 dns2)
+{
+  dns_arg_t a = {
+    .unit = unit,
+    .dns1 = dns1,
+    .dns2 = dns2,
+  };
+
+  if (unit < 0)
+    return 0;
+
+  vl_api_rpc_call_main_thread (dns_callback, (u8 *) &a, sizeof (a));
+  return 1;
+}
+
+int
+cifdns (int unit)
+{
+  return sifdns (unit, 0, 0);
+}
+
+typedef struct
+{
+  int unit;
   u32 mtu;
 } mtu_arg_t;
 

@@ -101,6 +101,26 @@ sync_pppoe_client_live_use_peer_dns (pppoe_client_t *c)
                                          c->use_peer_dns);
 }
 
+__clib_export void
+pppoe_client_set_peer_dns (u32 pppox_sw_if_index, u32 dns1, u32 dns2)
+{
+  pppoeclient_main_t *pem = &pppoeclient_main;
+  pppoe_client_t *c;
+  u32 client_index;
+
+  if (pppox_sw_if_index == ~0 ||
+      pppox_sw_if_index >= vec_len (pem->client_index_by_pppox_sw_if_index))
+    return;
+
+  client_index = pem->client_index_by_pppox_sw_if_index[pppox_sw_if_index];
+  if (client_index == ~0 || pool_is_free_index (pem->clients, client_index))
+    return;
+
+  c = pool_elt_at_index (pem->clients, client_index);
+  c->dns1 = dns1;
+  c->dns2 = dns2;
+}
+
 static void
 send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
                 u8 packet_code, u16 session_id, int is_broadcast)
@@ -733,7 +753,18 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
                      unit,
                      unit_from_hw ? "hw-dev-instance" : "sw-if-map");
   else
-    vlib_cli_output (vm, "    pppox-sw-if-index %u pppox-unit unavailable", c->pppox_sw_if_index);
+    vlib_cli_output (vm, "    pppox-sw-if-index %u pppox-unit unavailable",
+                     c->pppox_sw_if_index);
+  if (c->dns1)
+    vlib_cli_output (vm, "    peer-dns primary %U",
+                     format_ip4_address, &c->dns1);
+  else
+    vlib_cli_output (vm, "    peer-dns primary <none>");
+  if (c->dns2)
+    vlib_cli_output (vm, "    peer-dns secondary %U",
+                     format_ip4_address, &c->dns2);
+  else
+    vlib_cli_output (vm, "    peer-dns secondary <none>");
   if (c->username)
     vlib_cli_output (vm,
                      "    auth-user %v mtu %u mru %u timeout %u use-peer-dns %u add-default-route %u",
@@ -813,6 +844,8 @@ pppoe_client_close_session (u32 client_index)
         }
     }
 
+  c->dns1 = 0;
+  c->dns2 = 0;
   c->next_transmit = 0;
   c->retry_count = 0;
   c->state = PPPOE_CLIENT_DISCOVERY;

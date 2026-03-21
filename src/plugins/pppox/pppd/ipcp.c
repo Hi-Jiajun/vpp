@@ -105,6 +105,7 @@ ipcp_set_use_peer_dns (int unit, bool enabled)
     if (!enabled) {
         ipcp_wantoptions[unit].dnsaddr[0] = 0;
         ipcp_wantoptions[unit].dnsaddr[1] = 0;
+        cifdns (unit);
     }
 }
 static int ipcp_is_up[NUM_PPP];			/* have called np_up() */
@@ -1453,6 +1454,7 @@ ipcp_up(f)
 	    go->dnsaddr[0] = 0;
     if (!go->req_dns2)
 	    go->dnsaddr[1] = 0;
+    sifdns(f->unit, go->dnsaddr[0], go->dnsaddr[1]);
     if (go->dnsaddr[0])
 	script_setenv("DNS1", ip_ntoa(go->dnsaddr[0]), 0);
     if (go->dnsaddr[1])
@@ -1608,6 +1610,7 @@ ipcp_down(f)
 	ipcp_is_up[f->unit] = 0;
 	np_down(f->unit, PPP_IP);
     }
+    cifdns(f->unit);
     sifvjcomp(f->unit, 0, 0, 0);
 
     // ZDY:print_link_stats(); /* _after_ running the notifiers and ip_down_hook(),

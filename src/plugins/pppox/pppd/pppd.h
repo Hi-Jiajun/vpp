@@ -593,6 +593,10 @@ int  sifaddr __P((int, u_int32_t, u_int32_t, u_int32_t));
 				/* Configure IPv4 addresses for i/f */
 int  cifaddr __P((int, u_int32_t, u_int32_t));
 				/* Reset i/f IP addresses */
+int  sifdns __P((int, u_int32_t, u_int32_t));
+				/* Record peer-provided DNS addresses */
+int  cifdns __P((int));
+				/* Clear peer-provided DNS addresses */
 #ifdef INET6
 int  ether_to_eui64(eui64_t *p_eui64);	/* convert eth0 hw address to EUI64 */
 int  sif6up __P((int));		/* Configure i/f up for IPv6 */
