@@ -16,6 +16,7 @@
 #include <pppox/pppd/pppd.h>
 #include <pppox/pppd/fsm.h>
 #include <pppox/pppd/lcp.h>
+#include <pppox/pppd/ipcp.h>
 #include <pppox/pppd/upap.h>
 #include <pppox/pppd/chap-new.h>
 
@@ -470,6 +471,7 @@ pppox_lower_up(u32 sw_if_index)
             (*protp->init) (unit);
         }
       init_auth_context (unit);
+      ipcp_wantoptions[unit].default_route = t->add_default_route;
 
       lcp_open (unit);
       start_link (unit);
@@ -542,6 +544,23 @@ pppox_set_auth (u32 sw_if_index, u8 * username, u8 * password)
     }
   if (pppoe_client_open_session_func)
     (*pppoe_client_open_session_func) (t->pppoe_client_index);
+
+  return 0;
+}
+
+__clib_export int
+pppox_set_add_default_route (u32 sw_if_index, u8 enabled)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  u32 unit;
+
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, sw_if_index, &unit);
+  if (t == 0)
+    return VNET_API_ERROR_INVALID_INTERFACE;
+
+  t->add_default_route = !!enabled;
+  ipcp_wantoptions[unit].default_route = t->add_default_route;
 
   return 0;
 }
@@ -661,6 +680,96 @@ ifaddr_callback (void *arg)
 }
 
 void vl_api_rpc_call_main_thread (void *fp, u8 * data, u32 data_length);
+
+typedef struct
+{
+  int unit;
+  int is_add;
+  u32 gateway;
+} default_route_arg_t;
+
+static void *
+default_route_callback (void *arg)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  default_route_arg_t *a = arg;
+  fib_prefix_t all_0s = {
+    .fp_len = 0,
+    .fp_proto = FIB_PROTOCOL_IP4,
+  };
+  ip46_address_t nh = {
+    .ip4.as_u32 = a->gateway,
+  };
+  u32 fib_index;
+
+  if (a->unit < 0 || a->gateway == 0)
+    return 0;
+
+  t = pppox_get_virtual_interface_by_unit (pom, a->unit);
+  if (t == 0)
+    return 0;
+
+  fib_index = fib_table_get_index_for_sw_if_index (FIB_PROTOCOL_IP4,
+                                                    t->sw_if_index);
+  if (a->is_add)
+    fib_table_entry_path_add (fib_index, &all_0s, FIB_SOURCE_API,
+                              FIB_ENTRY_FLAG_NONE, DPO_PROTO_IP4, &nh,
+                              t->sw_if_index, ~0, 1, NULL,
+                              FIB_ROUTE_PATH_FLAG_NONE);
+  else
+    fib_table_entry_path_remove (fib_index, &all_0s, FIB_SOURCE_API,
+                                 DPO_PROTO_IP4, &nh, t->sw_if_index, ~0, 1,
+                                 FIB_ROUTE_PATH_FLAG_NONE);
+
+  return 0;
+}
+
+/********************************************************************
+ *
+ * sifdefaultroute - assign a default route through the peer address.
+ */
+int
+sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
+{
+  default_route_arg_t a = {
+    .unit = unit,
+    .is_add = 1,
+    .gateway = gateway,
+  };
+
+  (void) ouraddr;
+
+  if (unit < 0 || gateway == 0)
+    return 0;
+
+  vl_api_rpc_call_main_thread (default_route_callback,
+                               (u8 *) &a, sizeof (a));
+  return 1;
+}
+
+/********************************************************************
+ *
+ * cifdefaultroute - remove the default route through the peer address.
+ */
+int
+cifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
+{
+  default_route_arg_t a = {
+    .unit = unit,
+    .is_add = 0,
+    .gateway = gateway,
+  };
+
+  (void) ouraddr;
+
+  if (unit < 0 || gateway == 0)
+    return 0;
+
+  vl_api_rpc_call_main_thread (default_route_callback,
+                               (u8 *) &a, sizeof (a));
+  return 1;
+}
 
 /********************************************************************
  *

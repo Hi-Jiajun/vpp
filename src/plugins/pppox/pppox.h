@@ -69,6 +69,9 @@ typedef struct
   /* IPv6 addresses */
   ip6_address_t our_ipv6;
   ip6_address_t his_ipv6;
+
+  /* IPCP options derived from the PPPoE client CLI. */
+  u8 add_default_route;
 } pppox_virtual_interface_t;
 
 typedef struct
@@ -104,6 +107,7 @@ void pppox_free_interface(u32);
 void pppox_lower_up(u32);
 
 int pppox_set_auth (u32, u8 *, u8 *);
+int pppox_set_add_default_route (u32, u8);
 
 #endif /* _PPPOX_H */
 

@@ -57,6 +57,28 @@ sync_pppoe_client_live_auth (pppoe_client_t *c)
                                  c->password);
 }
 
+static int
+sync_pppoe_client_live_default_route (pppoe_client_t *c)
+{
+  static int (*pppox_set_add_default_route_func) (u32, u8) = 0;
+
+  if (c->pppox_sw_if_index == ~0)
+    return 0;
+
+  if (pppox_set_add_default_route_func == 0)
+    {
+      pppox_set_add_default_route_func =
+        vlib_get_plugin_symbol ("pppox_plugin.so",
+                                "pppox_set_add_default_route");
+    }
+
+  if (pppox_set_add_default_route_func == 0)
+    return VNET_API_ERROR_UNSUPPORTED;
+
+  return (*pppox_set_add_default_route_func) (c->pppox_sw_if_index,
+                                              c->use_peer_route);
+}
+
 static void
 send_pppoe_pkt (pppoeclient_main_t * pem, pppoe_client_t * c,
                 u8 packet_code, u16 session_id, int is_broadcast)
@@ -692,12 +714,12 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
     vlib_cli_output (vm, "    pppox-sw-if-index %u pppox-unit unavailable", c->pppox_sw_if_index);
   if (c->username)
     vlib_cli_output (vm,
-                     "    auth-user %v mtu %u mru %u timeout %u use-peer-dns %u use-peer-route %u",
+                     "    auth-user %v mtu %u mru %u timeout %u use-peer-dns %u add-default-route %u",
                      c->username, c->mtu, c->mru, c->timeout,
                      c->use_peer_dns, c->use_peer_route);
   else
     vlib_cli_output (vm,
-                     "    auth-user <unset> mtu %u mru %u timeout %u use-peer-dns %u use-peer-route %u",
+                     "    auth-user <unset> mtu %u mru %u timeout %u use-peer-dns %u add-default-route %u",
                      c->mtu, c->mru, c->timeout,
                      c->use_peer_dns, c->use_peer_route);
 }
@@ -1119,7 +1141,7 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
   u32 mru = 0;
   u32 timeout = 0;
   u8 use_peer_dns = 0;
-  u8 use_peer_route = 0;
+  u8 add_default_route = 0;
   u8 sync_live_auth = 0;
   int rv;
   //u32 ip4_addr = 0;
@@ -1141,8 +1163,10 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
         ;
       else if (unformat (input, "use-peer-dns"))
         use_peer_dns = 1;
+      else if (unformat (input, "add-default-route"))
+        add_default_route = 1;
       else if (unformat (input, "use-peer-route"))
-        use_peer_route = 1;
+        add_default_route = 1;
       else
         break;
     }
@@ -1175,8 +1199,14 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
     c->timeout = timeout;
   if (use_peer_dns)
     c->use_peer_dns = 1;
-  if (use_peer_route)
+  if (add_default_route)
     c->use_peer_route = 1;
+
+  rv = sync_pppoe_client_live_default_route (c);
+  if (rv)
+    return clib_error_return (
+      0, "failed to sync live add-default-route on pppox sw-if-index %u: %d",
+      c->pppox_sw_if_index, rv);
 
   if (sync_live_auth)
     {
@@ -1194,7 +1224,7 @@ set_pppoe_client_command_fn (vlib_main_t * vm,
 /* *INDENT-OFF* */
 VLIB_CLI_COMMAND (set_pppoe_client_command, static) = {
     .path = "set pppoe client",
-    .short_help = "set pppoe client <index> username <user> password <pass> [mtu <n>] [mru <n>] [timeout <n>] [use-peer-dns] [use-peer-route]",
+    .short_help = "set pppoe client <index> username <user> password <pass> [mtu <n>] [mru <n>] [timeout <n>] [use-peer-dns] [add-default-route]",
     .function = set_pppoe_client_command_fn,
 };
 /* *INDENT-ON* */

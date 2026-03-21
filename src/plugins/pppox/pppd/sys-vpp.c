@@ -365,16 +365,9 @@ sifnpmode(int u, int proto, enum NPmode mode)
 
 /********************************************************************
  *
- * sifdefaultroute - assign a default route through the address given.
+ * sifdefaultroute/cifdefaultroute are implemented in pppox.c, where
+ * route changes are marshalled onto the VPP main thread.
  */
-
-int sifdefaultroute (int unit, u_int32_t ouraddr, u_int32_t gateway)
-{
-  unit = unit;
-  ouraddr = ouraddr;
-  gateway = gateway;
-  return 1;
-}
 
 /********************************************************************
  *
