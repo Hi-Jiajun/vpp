@@ -13,6 +13,7 @@
 
 #include <vppinfra/byte_order.h>
 #include <vlibmemory/api.h>
+#include <string.h>
 #include <vlibapi/api_helper_macros.h>
 
 #include <pppox/pppox.h>
@@ -67,6 +68,21 @@ setup_message_id_table (pppox_main_t * pom, api_main_t * am)
 #define foreach_pppox_plugin_api_msg                             \
 _(PPPOX_SET_AUTH, pppox_set_auth)
 
+static int
+pppox_api_string_field_to_vec (u8 **dst, const u8 *src, size_t src_size)
+{
+  size_t len = strnlen ((const char *) src, src_size);
+
+  if (len == src_size)
+    return VNET_API_ERROR_INVALID_VALUE;
+
+  vec_validate (*dst, len);
+  clib_memcpy (*dst, src, len);
+  (*dst)[len] = 0;
+
+  return 0;
+}
+
 static void __attribute__((unused))
 vl_api_pppox_set_auth_t_handler
   (vl_api_pppox_set_auth_t * mp)
@@ -74,15 +90,21 @@ vl_api_pppox_set_auth_t_handler
   vl_api_pppox_set_auth_reply_t *rmp;
   int rv = 0;
   CLIB_UNUSED (pppox_main_t *pom) = &pppox_main;
-  u8 * username = 0, * password = 0;
+  u8 *username = 0, *password = 0;
 
-  int username_len = strlen ((char *) mp->username); vec_resize (username, username_len);
-  clib_memcpy (username, mp->username, username_len);
-  vec_add1(username, 0);
-  int password_len = strlen ((char *) mp->password); vec_resize (password, password_len);
-  clib_memcpy (password, mp->password, password_len);
-  vec_add1(password, 0);
+  rv = pppox_api_string_field_to_vec (&username, mp->username,
+                                      sizeof (mp->username));
+  if (rv)
+    goto out;
+
+  rv = pppox_api_string_field_to_vec (&password, mp->password,
+                                      sizeof (mp->password));
+  if (rv)
+    goto out;
+
   rv = pppox_set_auth (ntohl (mp->sw_if_index), username, password);
+
+out:
   vec_free (username);
   vec_free (password);
 

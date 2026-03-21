@@ -21,10 +21,11 @@ pppox_set_auth_command_fn (vlib_main_t * vm, unformat_input_t * input,
                            vlib_cli_command_t * cmd)
 {
   unformat_input_t _line_input, *line_input = &_line_input;
+  clib_error_t *error = 0;
   int r;
-  u32 sw_if_index;
-  u8 * username;
-  u8 * password;
+  u32 sw_if_index = ~0;
+  u8 *username = 0;
+  u8 *password = 0;
 
   /* Get a line of input. */
   if (!unformat_user (input, unformat_line_input, line_input))
@@ -39,19 +40,42 @@ pppox_set_auth_command_fn (vlib_main_t * vm, unformat_input_t * input,
       else if (unformat (line_input, "password %s", &password))
 	;
       else
-	return clib_error_return (0, "unknown input `%U'",
-				  format_unformat_error, input);
+	{
+	  error = clib_error_return (0, "unknown input `%U'",
+				     format_unformat_error, line_input);
+	  goto done;
+	}
     }
-  unformat_free (line_input);
+
+  if (sw_if_index == ~0)
+    {
+      error = clib_error_return (0, "missing required argument 'sw-if-index'");
+      goto done;
+    }
+
+  if (!username)
+    {
+      error = clib_error_return (0, "missing required argument 'username'");
+      goto done;
+    }
+
+  if (!password)
+    {
+      error = clib_error_return (0, "missing required argument 'password'");
+      goto done;
+    }
 
   r = pppox_set_auth (sw_if_index, username, password);
+
+  if (r == VNET_API_ERROR_INVALID_INTERFACE)
+    error = clib_error_return (0, "Invalid interface name");
+
+done:
+  unformat_free (line_input);
   vec_free (username);
   vec_free (password);
 
-  if (r == VNET_API_ERROR_INVALID_INTERFACE)
-    return clib_error_return (0, "Invalid interface name");
-
-  return 0;
+  return error;
 }
 
 /*?
