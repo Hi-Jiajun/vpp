@@ -49,9 +49,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <netdb.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -160,6 +162,7 @@ static int  ipcp_printpkt __P((u_char *, int,
 			       void (*) __P((void *, char *, ...)), void *));
 static int  ip_demand_conf __P((int));
 static int  ip_active_pkt __P((u_char *, int));
+static int ensure_path_parent __P((const char *));
 static void create_resolv __P((u_int32_t, u_int32_t));
 
 struct protent ipcp_protent = {
@@ -1715,6 +1718,45 @@ ipcp_script(script, wait)
 }
 
 /*
+ * ensure_path_parent - create the parent directory for a path if needed
+ */
+static int
+ensure_path_parent(path)
+    const char *path;
+{
+    char dir[MAXPATHLEN];
+    char *p, *slash;
+
+    if (strlcpy(dir, path, sizeof(dir)) >= sizeof(dir)) {
+	errno = ENAMETOOLONG;
+	return -1;
+    }
+
+    slash = strrchr(dir, '/');
+    if (slash == NULL || slash == dir)
+	return 0;
+
+    *slash = 0;
+    p = dir;
+    if (*p == '/')
+	++p;
+
+    for (; *p != 0; ++p) {
+	if (*p != '/')
+	    continue;
+	*p = 0;
+	if (*dir != 0 && mkdir(dir, 0755) < 0 && errno != EEXIST)
+	    return -1;
+	*p = '/';
+    }
+
+    if (*dir != 0 && mkdir(dir, 0755) < 0 && errno != EEXIST)
+	return -1;
+
+    return 0;
+}
+
+/*
  * create_resolv - create the replacement resolv.conf file
  */
 static void
@@ -1722,6 +1764,11 @@ create_resolv(peerdns1, peerdns2)
     u_int32_t peerdns1, peerdns2;
 {
     FILE *f;
+
+    if (ensure_path_parent(_PATH_RESOLV) < 0) {
+	xerror("Failed to create parent directory for %s: %m", _PATH_RESOLV);
+	return;
+    }
 
     f = fopen(_PATH_RESOLV, "w");
     if (f == NULL) {
