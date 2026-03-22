@@ -16,6 +16,7 @@
 #include <vnet/dpo/interface_tx_dpo.h>
 #include <vnet/plugin/plugin.h>
 #include <vpp/app/version.h>
+#include <vnet/ip/ip_interface.h>
 #include <ppp/packet.h>
 #include <pppox/pppox.h>
 #include <pppoeclient/pppoeclient.h>
@@ -741,6 +742,38 @@ pppoe_client_get_detail_virtual_interface (pppoeclient_main_t *pem,
   return t;
 }
 
+static u8
+pppoe_client_get_detail_global_ipv6 (u32 sw_if_index, ip6_address_t *addr,
+                                     u8 *prefix_len)
+{
+  ip_lookup_main_t *lm = &ip6_main.lookup_main;
+  ip_interface_address_t *ia = 0;
+
+  if (addr)
+    ip6_address_set_zero (addr);
+  if (prefix_len)
+    *prefix_len = 0;
+
+  if (sw_if_index == ~0)
+    return 0;
+
+  foreach_ip_interface_address (lm, ia, sw_if_index, 1 /* honor unnumbered */,
+  ({
+    ip6_address_t *candidate = ip_interface_address_get_address (lm, ia);
+
+    if (ip6_address_is_link_local_unicast (candidate))
+      continue;
+
+    if (addr)
+      *addr = *candidate;
+    if (prefix_len)
+      *prefix_len = ia->address_length;
+    return 1;
+  }));
+
+  return 0;
+}
+
 static void
 show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
 {
@@ -775,16 +808,36 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
                        format_ip4_address, &t->our_addr,
                        format_ip4_address, &t->his_addr);
       {
-        const ip6_address_t *local_ip6 =
+        ip6_address_t observed_local_ip6;
+        u8 observed_prefix_len = 0;
+        u8 observed_local_present = 0;
+        const ip6_address_t *ipv6cp_local_ip6 =
           ip6_address_is_zero (&c->ip6_addr) ? &t->our_ipv6 : &c->ip6_addr;
-        const ip6_address_t *peer_ip6 =
+        const ip6_address_t *ipv6cp_peer_ip6 =
           ip6_address_is_zero (&c->ip6_peer_addr) ? &t->his_ipv6 : &c->ip6_peer_addr;
+        const ip6_address_t *local_ip6 = ipv6cp_local_ip6;
+        const ip6_address_t *peer_ip6 = ipv6cp_peer_ip6;
         u8 prefix_len = c->ipv6_prefix_len;
+        const char *ipv6_source = "unset";
 
-        if (prefix_len == 0
-            && (!ip6_address_is_zero (local_ip6)
-                || !ip6_address_is_zero (peer_ip6)))
-          prefix_len = 64;
+        observed_local_present =
+          pppoe_client_get_detail_global_ipv6 (c->pppox_sw_if_index,
+                                               &observed_local_ip6,
+                                               &observed_prefix_len);
+
+        if (observed_local_present)
+          {
+            local_ip6 = &observed_local_ip6;
+            prefix_len = observed_prefix_len;
+            ipv6_source = "pppox-interface-address";
+          }
+        else if (!ip6_address_is_zero (local_ip6)
+                 || !ip6_address_is_zero (peer_ip6))
+          {
+            if (prefix_len == 0)
+              prefix_len = 64;
+            ipv6_source = "ipv6cp-link-local";
+          }
 
         vlib_cli_output (vm, "    ipv6 local %U/%u peer %U use-peer-ipv6 %u",
                          format_ip6_address, local_ip6, prefix_len,
@@ -792,10 +845,15 @@ show_pppoe_client_detail_one (vlib_main_t *vm, pppoe_client_t *c)
         vlib_cli_output (
           vm,
           "    ipv6 source %s peer-host-route %u default-route-config %u",
-          (!ip6_address_is_zero (local_ip6) || !ip6_address_is_zero (peer_ip6))
-            ? "ipv6cp-link-local"
-            : "unset",
-          !ip6_address_is_zero (peer_ip6), c->use_peer_route);
+          ipv6_source, !ip6_address_is_zero (peer_ip6), c->use_peer_route);
+
+        if (observed_local_present &&
+            (!ip6_address_is_zero (ipv6cp_local_ip6) ||
+             !ip6_address_is_zero (ipv6cp_peer_ip6)))
+          vlib_cli_output (vm,
+                           "    ipv6cp link-local local %U peer %U",
+                           format_ip6_address, ipv6cp_local_ip6,
+                           format_ip6_address, ipv6cp_peer_ip6);
       }
     }
   else if (unit != ~0)
