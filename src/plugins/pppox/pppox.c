@@ -438,7 +438,7 @@ pppox_handle_allocated_ipv6_address (pppox_virtual_interface_t *t, u8 is_add)
                                 t->sw_if_index, ~0, 1, NULL,
                                 FIB_ROUTE_PATH_FLAG_NONE);
 
-      if (t->add_default_route)
+      if (t->add_default_route6)
         fib_table_entry_path_add (fib_index, &default_pfx,
                                   FIB_SOURCE_API, FIB_ENTRY_FLAG_NONE,
                                   DPO_PROTO_IP6, &nh,
@@ -447,7 +447,7 @@ pppox_handle_allocated_ipv6_address (pppox_virtual_interface_t *t, u8 is_add)
     }
   else
     {
-      if (t->add_default_route)
+      if (t->add_default_route6)
         fib_table_entry_path_remove (fib_index, &default_pfx,
                                      FIB_SOURCE_API,
                                      DPO_PROTO_IP6, &nh,
@@ -543,7 +543,7 @@ pppox_lower_up(u32 sw_if_index)
             (*protp->init) (unit);
         }
       init_auth_context (unit);
-      ipcp_wantoptions[unit].default_route = t->add_default_route;
+      ipcp_wantoptions[unit].default_route = t->add_default_route4;
       ipcp_set_use_peer_dns (unit, t->use_peer_dns);
 
       lcp_open (unit);
@@ -622,7 +622,7 @@ pppox_set_auth (u32 sw_if_index, u8 * username, u8 * password)
 }
 
 __clib_export int
-pppox_set_add_default_route (u32 sw_if_index, u8 enabled)
+pppox_set_add_default_route4 (u32 sw_if_index, u8 enabled)
 {
   pppox_main_t *pom = &pppox_main;
   pppox_virtual_interface_t *t;
@@ -632,10 +632,37 @@ pppox_set_add_default_route (u32 sw_if_index, u8 enabled)
   if (t == 0)
     return VNET_API_ERROR_INVALID_INTERFACE;
 
-  t->add_default_route = !!enabled;
-  ipcp_wantoptions[unit].default_route = t->add_default_route;
+  t->add_default_route4 = !!enabled;
+  ipcp_wantoptions[unit].default_route = t->add_default_route4;
 
   return 0;
+}
+
+__clib_export int
+pppox_set_add_default_route6 (u32 sw_if_index, u8 enabled)
+{
+  pppox_main_t *pom = &pppox_main;
+  pppox_virtual_interface_t *t;
+  u32 unit;
+
+  t = pppox_get_virtual_interface_by_sw_if_index (pom, sw_if_index, &unit);
+  if (t == 0)
+    return VNET_API_ERROR_INVALID_INTERFACE;
+
+  t->add_default_route6 = !!enabled;
+
+  return 0;
+}
+
+/* Convenience: set both IPv4 and IPv6 default route flags at once. */
+__clib_export int
+pppox_set_add_default_route (u32 sw_if_index, u8 enabled)
+{
+  int rv;
+  rv = pppox_set_add_default_route4 (sw_if_index, enabled);
+  if (rv)
+    return rv;
+  return pppox_set_add_default_route6 (sw_if_index, enabled);
 }
 
 __clib_export int

@@ -302,84 +302,62 @@ VLIB_REGISTER_NODE (pppoeclient_discovery_input_node) = {
 
 
 
-// ethernet II MT(1500B) - pppoe overhead(8B) - IPv4(20B) - TCP(20B)
+// ethernet II MTU(1500B) - pppoe overhead(8B) - IPv4(20B) - TCP(20B) = 1452
+// ethernet II MTU(1500B) - pppoe overhead(8B) - IPv6(40B) - TCP(20B) = 1432
+#define PPPOE_DEFAULT_TCP_MSS_V4 1452
+#define PPPOE_DEFAULT_TCP_MSS_V6 1432
 
-// TODO: ����Ҫ����ʹ��֧��MRUЭ�̵�����
+static_always_inline void
+try_clamp_tcp_mss_in_syn (tcp_header_t *tcp0, u16 max_mss)
+{
+  if (!(tcp0->flags & TCP_FLAG_SYN))
+    return;
 
-#define PPPOE_DEFAULT_TCP_MSS 1452
+  u8 opts_len = (tcp_doff (tcp0) << 2) - sizeof (tcp_header_t);
+  u8 *data = (u8 *) (tcp0 + 1);
 
-
+  /* MSS option: kind=2, length=4, value(2 bytes) */
+  if (opts_len >= 4 && TCP_OPTION_MSS == data[0])
+    {
+      u16 mss = clib_net_to_host_u16 (*(u16 *) (data + 2));
+      if (mss > max_mss)
+        {
+          u16 new_mss_net = clib_host_to_net_u16 (max_mss);
+          ip_csum_t sum0 = tcp0->checksum;
+          sum0 = ip_csum_update (sum0, *(u16 *) (data + 2), new_mss_net,
+                                 ip4_header_t, /* cheat */
+                                 length /* changed member */);
+          *(u16 *) (data + 2) = new_mss_net;
+          tcp0->checksum = ip_csum_fold (sum0);
+        }
+    }
+}
 
 static void try_update_tcp_mss(vlib_buffer_t *b0)
-
 {
-
   unsigned char * ppp0 = vlib_buffer_get_current (b0);
-
   u16 ppp_protocol = clib_net_to_host_u16 (*(u16 *) ppp0);
 
   if (PPP_PROTOCOL_ip4 == ppp_protocol)
-
     {
-
-
-
       ip4_header_t * ip0 = (ip4_header_t *)(ppp0 + 2); // skip ppp protocol.
-
-      if ((IP_PROTOCOL_TCP == ip0->protocol) && (clib_net_to_host_u16(ip0->length) < 66))
-
-	{
-
-	  tcp_header_t *tcp0 = ip4_next_header (ip0);
-
-	  if (tcp0->flags & TCP_FLAG_SYN)
-
-	    {
-
-	      u8 opts_len = (tcp_doff (tcp0) << 2) - sizeof (tcp_header_t);
-
-	      u8 *data = (u8 *) (tcp0 + 1);
-
-	      if (opts_len > 0 && TCP_OPTION_MSS == data[0])
-
-		{
-
-		  u16 mss = clib_net_to_host_u16 (*(u16 *) (data + 2));
-
-		  if (mss > PPPOE_DEFAULT_TCP_MSS)
-
-		    {
-
-		      *(u16 *) (data + 2) = clib_net_to_host_u16(PPPOE_DEFAULT_TCP_MSS);
-
-		      // update tcp checksum
-
-		      ip_csum_t sum0 = tcp0->checksum;
-
-		      sum0 = ip_csum_update (sum0, clib_net_to_host_u16(mss), *(u16 *) (data + 2),
-
-					     ip4_header_t,/* cheat */
-
-					     length /* changed member */);
-
-		      tcp0->checksum = ip_csum_fold(sum0);
-
-		    }
-
-		}
-
-	    }
-
-	}
-
+      if (IP_PROTOCOL_TCP == ip0->protocol)
+        {
+          tcp_header_t *tcp0 = ip4_next_header (ip0);
+          try_clamp_tcp_mss_in_syn (tcp0, PPPOE_DEFAULT_TCP_MSS_V4);
+        }
+    }
+  else if (PPP_PROTOCOL_ip6 == ppp_protocol)
+    {
+      ip6_header_t *ip6_0 = (ip6_header_t *)(ppp0 + 2); // skip ppp protocol.
+      if (IP_PROTOCOL_TCP == ip6_0->protocol)
+        {
+          tcp_header_t *tcp0 = (tcp_header_t *) (ip6_0 + 1);
+          try_clamp_tcp_mss_in_syn (tcp0, PPPOE_DEFAULT_TCP_MSS_V6);
+        }
     }
 
-
-
-  // TODO: support ipv6 later.
-
   return;
-
 }
 
 

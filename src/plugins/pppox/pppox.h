@@ -71,7 +71,8 @@ typedef struct
   ip6_address_t his_ipv6;
 
   /* IPCP options derived from the PPPoE client CLI. */
-  u8 add_default_route;
+  u8 add_default_route4; /* add IPv4 default route via peer */
+  u8 add_default_route6; /* add IPv6 default route via peer */
   u8 use_peer_dns;
 } pppox_virtual_interface_t;
 
@@ -108,7 +109,9 @@ void pppox_free_interface(u32);
 void pppox_lower_up(u32);
 
 int pppox_set_auth (u32, u8 *, u8 *);
-int pppox_set_add_default_route (u32, u8);
+int pppox_set_add_default_route (u32, u8);   /* sets both IPv4 and IPv6 */
+int pppox_set_add_default_route4 (u32, u8);  /* IPv4 only */
+int pppox_set_add_default_route6 (u32, u8);  /* IPv6 only */
 int pppox_set_use_peer_dns (u32, u8);
 void pppox_set_interface_mtu (int, int);
 
