@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: RSA-MD */
+
 /*
  ***********************************************************************
  ** md5.h -- header file for implementation of MD5                    **

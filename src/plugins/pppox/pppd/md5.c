@@ -1,4 +1,6 @@
 
+/* SPDX-License-Identifier: RSA-MD */
+
 /*
  ***********************************************************************
  ** md5.c -- the source code for MD5 routines                         **
