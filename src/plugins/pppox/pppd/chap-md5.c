@@ -33,57 +33,15 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <pppox/pppox.h>
-#include <vnet/crypto/crypto.h>
-#include <vnet/crypto/hash.h>
 #include "pppd.h"
 #include "chap-new.h"
 #include "chap-md5.h"
 #include "magic.h"
+#include "md5.h"
 
 #define MD5_HASH_SIZE	  16
 #define MD5_MIN_CHALLENGE 16
 #define MD5_MAX_CHALLENGE 24
-
-static int
-chap_md5_hash (unsigned char idbyte, unsigned char *secret, int secret_len,
-	       unsigned char *challenge, int challenge_len, unsigned char *digest)
-{
-  pppox_main_t *pom = &pppox_main;
-  vnet_crypto_hash_ctx_t *ctx;
-  vnet_crypto_hash_op_t op;
-  unsigned char data[1 + MAXSECRETLEN + MD5_MAX_CHALLENGE];
-
-  if (PREDICT_FALSE (pom->vlib_main == 0 || secret_len < 0 || secret_len > MAXSECRETLEN ||
-		     challenge_len < 0 || challenge_len > MD5_MAX_CHALLENGE))
-    return -1;
-
-  data[0] = idbyte;
-  if (secret_len)
-    clib_memcpy_fast (data + 1, secret, secret_len);
-  if (challenge_len)
-    clib_memcpy_fast (data + 1 + secret_len, challenge, challenge_len);
-
-  ctx = vnet_crypto_hash_ctx_create (VNET_CRYPTO_HASH_ALG_MD5);
-  if (ctx == 0)
-    return -1;
-
-  vnet_crypto_hash_op_init (&op);
-  op.ctx = ctx;
-  op.src = data;
-  op.len = 1 + secret_len + challenge_len;
-  op.digest = digest;
-
-  if (vnet_crypto_process_hash_ops (pom->vlib_main, &op, 0, 1) != 1 ||
-      op.status != VNET_CRYPTO_OP_STATUS_COMPLETED)
-    {
-      vnet_crypto_hash_ctx_destroy (ctx);
-      return -1;
-    }
-
-  vnet_crypto_hash_ctx_destroy (ctx);
-  return 0;
-}
 
 static void
 chap_md5_generate_challenge (unsigned char *cp)
@@ -100,6 +58,7 @@ chap_md5_verify_response (int id, char *name, unsigned char *secret, int secret_
 			  unsigned char *challenge, unsigned char *response, char *message,
 			  int message_space)
 {
+  MD5_CTX ctx;
   unsigned char idbyte = id;
   unsigned char hash[MD5_HASH_SIZE];
   int challenge_len, response_len;
@@ -108,8 +67,13 @@ chap_md5_verify_response (int id, char *name, unsigned char *secret, int secret_
   response_len = *response++;
   if (response_len == MD5_HASH_SIZE)
     {
-      if (chap_md5_hash (idbyte, secret, secret_len, challenge, challenge_len, hash) == 0 &&
-	  memcmp (hash, response, MD5_HASH_SIZE) == 0)
+      MD5_Init (&ctx);
+      MD5_Update (&ctx, &idbyte, 1);
+      MD5_Update (&ctx, secret, secret_len);
+      MD5_Update (&ctx, challenge, challenge_len);
+      MD5_Final (hash, &ctx);
+
+      if (memcmp (hash, response, MD5_HASH_SIZE) == 0)
 	{
 	  slprintf (message, message_space, "Access granted");
 	  return 1;
@@ -123,13 +87,16 @@ static void
 chap_md5_make_response (unsigned char *response, int id, char *our_name, unsigned char *challenge,
 			char *secret, int secret_len, unsigned char *private)
 {
+  MD5_CTX ctx;
   unsigned char idbyte = id;
   int challenge_len = *challenge++;
 
+  MD5_Init (&ctx);
+  MD5_Update (&ctx, &idbyte, 1);
+  MD5_Update (&ctx, (u_char *) secret, secret_len);
+  MD5_Update (&ctx, challenge, challenge_len);
+  MD5_Final (&response[1], &ctx);
   response[0] = MD5_HASH_SIZE;
-  if (chap_md5_hash (idbyte, (unsigned char *) secret, secret_len, challenge, challenge_len,
-		     &response[1]) != 0)
-    memset (&response[1], 0, MD5_HASH_SIZE);
 }
 
 static struct chap_digest_type md5_digest = {

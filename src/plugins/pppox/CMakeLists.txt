@@ -17,6 +17,7 @@ add_vpp_plugin(pppox
     pppd/ipv6cp.c
     pppd/lcp.c
     pppd/magic.c
+    pppd/md5.c
     pppd/options.c
     pppd/sys-vpp.c
     pppd/upap.c
