@@ -597,6 +597,8 @@ af_xdp_create_if (vlib_main_t * vm, af_xdp_create_if_args_t * args)
   int ns_fds[2];
   int i, ret;
 
+  clib_memset (reuse_mac, 0, sizeof (reuse_mac));
+
   args->rxq_size = args->rxq_size ? args->rxq_size : 2 * VLIB_FRAME_SIZE;
   args->txq_size = args->txq_size ? args->txq_size : 2 * VLIB_FRAME_SIZE;
   args->rxq_num = args->rxq_num ? args->rxq_num : 1;
