@@ -292,6 +292,7 @@ jobs:
       - detect-docs-changes
       - verify-checkstyle
       - verify-maketest
+      - verify-gcc
       - verify-docs
       - verify-csit-api
       - verify-arm-drivers
@@ -313,6 +314,7 @@ jobs:
           if [[ "${{ needs.start-verify.result }}" == "success" && \
                 "${{ needs.verify-checkstyle.result }}" == "success" && \
                 "${{ needs.verify-maketest.result }}" == "success" && \
+                "${{ needs.verify-gcc.result }}" == "success" && \
                 "$docs_ok" == "true" && \
                 "${{ needs.verify-csit-api.result }}" == "success" && \
                 "${{ needs.verify-arm-drivers.result }}" == "success" && \
